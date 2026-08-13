@@ -6,18 +6,12 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.elderhelpprototypev01.accessibility.SahaayAccessibilityService
 import com.example.elderhelpprototypev01.ai.GeminiLlmService
 import com.example.elderhelpprototypev01.ai.LlmService
-import com.example.elderhelpprototypev01.highlight.HighlightData
-import com.example.elderhelpprototypev01.highlight.HighlightManager
 import com.example.elderhelpprototypev01.model.AssistantResponse
 import com.example.elderhelpprototypev01.model.ConversationMessage
 import com.example.elderhelpprototypev01.model.MessageRole
 import com.example.elderhelpprototypev01.model.VoiceState
-import com.example.elderhelpprototypev01.screen.GeminiScreenAnalysisService
-import com.example.elderhelpprototypev01.screen.ScreenAnalysisResult
-import com.example.elderhelpprototypev01.screen.ScreenAnalysisService
 import com.example.elderhelpprototypev01.voice.SpeechRecognizerManager
 import com.example.elderhelpprototypev01.voice.TextToSpeechManager
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +24,11 @@ import kotlinx.coroutines.launch
 /**
  * SahaayViewModel
  *
- * Single source of truth for the entire assistant pipeline:
- *   Voice Input → STT → LLM / Screen Analysis → Highlight Overlay → TTS
+ * Single source of truth for the entire voice assistant pipeline:
+ *   Voice Input → STT → LLM → Response → TTS
  *
- * Owned at Activity scope so state persists across tab switches.
+ * Owned at the Activity scope so state persists across tab switches.
+ * The UI never talks directly to SpeechRecognizer, TTS, or the LLM.
  */
 class SahaayViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -42,7 +37,6 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // ------------------------------------------------------------------
 
     private val llmService: LlmService = GeminiLlmService()
-    private val screenAnalysisService: ScreenAnalysisService = GeminiScreenAnalysisService()
     private val speechManager = SpeechRecognizerManager(application)
     private val ttsManager = TextToSpeechManager(application)
 
@@ -74,9 +68,6 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentLanguage = MutableStateFlow("English (India)")
     val currentLanguage: StateFlow<String> = _currentLanguage.asStateFlow()
 
-    // Screen Highlighting State
-    val activeHighlight: StateFlow<HighlightData?> = HighlightManager.activeHighlight
-
     private var speechCollectionJob: Job? = null
     private var lastTranscript: String = ""
 
@@ -86,6 +77,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
 
     init {
         ttsManager.initialize(onReady = {})
+        // Mirror TTS speaking state into our own flow
         viewModelScope.launch {
             ttsManager.isSpeaking.collect { speaking ->
                 _isSpeaking.value = speaking
@@ -106,6 +98,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // Voice Input
     // ------------------------------------------------------------------
 
+    /** Check if microphone permission is granted. */
     fun hasMicPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
             getApplication(),
@@ -113,6 +106,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    /** Start listening for speech. Call only after permission is granted. */
     fun startListening() {
         if (!hasMicPermission()) {
             _voiceState.value = VoiceState.RequestingPermission
@@ -129,6 +123,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         _transcript.value = ""
         _voiceState.value = VoiceState.Listening
 
+        // Cancel any previous collection
         speechCollectionJob?.cancel()
         speechCollectionJob = viewModelScope.launch(Dispatchers.Main) {
             speechManager.events.collect { event ->
@@ -151,7 +146,9 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                         _voiceState.value = VoiceState.Error(event.message)
                         speechCollectionJob?.cancel()
                     }
-                    is SpeechRecognizerManager.SpeechEvent.Stopped -> {}
+                    is SpeechRecognizerManager.SpeechEvent.Stopped -> {
+                        // Stopped by user — do nothing, wait for result or already processed
+                    }
                 }
             }
         }
@@ -159,6 +156,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         speechManager.startListening(_currentLanguage.value)
     }
 
+    /** Stop listening early (user tapped Stop). */
     fun stopListening() {
         speechManager.stopListening()
         if (_voiceState.value is VoiceState.Listening) {
@@ -166,6 +164,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Retry the last recognized transcript through the LLM again. */
     fun retryLastTranscript() {
         if (lastTranscript.isNotBlank()) {
             processTranscript(lastTranscript)
@@ -174,129 +173,31 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Reset voice state so user can start fresh. */
     fun resetVoiceState() {
         _voiceState.value = VoiceState.Idle
         _transcript.value = ""
     }
 
     // ------------------------------------------------------------------
-    // Screen Analysis & Highlighting Pipeline
+    // LLM Processing
     // ------------------------------------------------------------------
 
-    /**
-     * Inspects the current screen using [SahaayAccessibilityService], sends context to Gemini,
-     * draws a visual highlight overlay over the target UI element, and speaks the guidance.
-     */
-    fun analyzeCurrentScreenAndHighlight(userGoal: String = "What should I do next?") {
+    private fun processTranscript(text: String) {
         _voiceState.value = VoiceState.Processing
         _currentResponse.value = AssistantResponse.loading()
 
-        val isServiceEnabled = SahaayAccessibilityService.isServiceEnabled(getApplication())
-        val screenContext = SahaayAccessibilityService.instance?.captureCurrentScreenContext()
-
-        if (!isServiceEnabled || screenContext == null || screenContext.elements.isEmpty()) {
-            // Service not enabled or no nodes -> Friendly guidance prompt
-            val response = AssistantResponse(
-                intent = "ACCESSIBILITY_NEEDED",
-                goal = userGoal,
-                response = "Please enable Sahaay Accessibility Service in System Settings so I can inspect and highlight options on your screen.",
-                suggestedNextStep = "Open Settings → Accessibility → Sahaay Assistant Service → Turn ON."
-            )
-            _currentResponse.value = response
-            _voiceState.value = VoiceState.Done
-            if (_ttsEnabled.value) {
-                ttsManager.speak(response.response, force = false)
-            }
-            return
-        }
-
-        // Add to conversation
-        val userMsg = ConversationMessage(role = MessageRole.USER, text = userGoal)
-        _conversation.value = _conversation.value + userMsg
-
-        viewModelScope.launch {
-            val result = screenAnalysisService.analyzeScreen(
-                screenContext = screenContext,
-                userGoal = userGoal,
-                conversationHistory = _conversation.value,
-                userLanguage = _currentLanguage.value
-            )
-
-            val assistantResponse = AssistantResponse(
-                intent = result.actionType,
-                goal = userGoal,
-                response = result.explanation,
-                suggestedNextStep = result.targetElementText?.let { "Tap the highlighted '$it' option." },
-                helpfulTip = result.reason,
-                isError = result.isError,
-                errorMessage = result.errorMessage
-            )
-
-            _currentResponse.value = assistantResponse
-            _voiceState.value = if (result.isError) VoiceState.Error(result.explanation) else VoiceState.Done
-
-            if (!result.isError) {
-                _conversation.value = _conversation.value + ConversationMessage(
-                    role = MessageRole.ASSISTANT,
-                    text = result.explanation
-                )
-
-                // If target bounds found -> Show visual highlight overlay!
-                if (result.targetElementBounds != null && result.targetElementBounds.width() > 0) {
-                    HighlightManager.showHighlight(
-                        context = getApplication(),
-                        bounds = result.targetElementBounds,
-                        targetText = result.targetElementText ?: "",
-                        explanation = result.explanation
-                    )
-                }
-
-                // Speak explanation via TTS
-                if (_ttsEnabled.value) {
-                    val textToSpeak = buildSpeakableText(assistantResponse)
-                    ttsManager.speak(textToSpeak, force = false)
-                }
-            }
-        }
-    }
-
-    /** Clear active visual highlight box. */
-    fun clearHighlight() {
-        HighlightManager.clearHighlight(getApplication())
-    }
-
-    // ------------------------------------------------------------------
-    // LLM Processing Dispatcher
-    // ------------------------------------------------------------------
-
-    fun processTranscript(text: String) {
-        val lower = text.lowercase()
-
-        // Check if user is asking for screen analysis / highlighting
-        val isScreenCommand = lower.contains("next") || lower.contains("what should i do") ||
-                lower.contains("explain screen") || lower.contains("read screen") ||
-                lower.contains("read this") || lower.contains("doctor") ||
-                lower.contains("sharma") || lower.contains("book") || lower.contains("bill")
-
-        val hasAccessibility = SahaayAccessibilityService.isServiceEnabled(getApplication()) &&
-                SahaayAccessibilityService.instance?.captureCurrentScreenContext()?.elements?.isNotEmpty() == true
-
-        if (isScreenCommand && hasAccessibility) {
-            analyzeCurrentScreenAndHighlight(text)
-            return
-        }
-
-        // Standard LLM processing
-        _voiceState.value = VoiceState.Processing
-        _currentResponse.value = AssistantResponse.loading()
-
-        val userMessage = ConversationMessage(role = MessageRole.USER, text = text)
+        // Add user message to conversation
+        val userMessage = ConversationMessage(
+            role = MessageRole.USER,
+            text = text
+        )
         _conversation.value = _conversation.value + userMessage
 
         viewModelScope.launch {
             val response = llmService.analyze(
                 transcript = text,
-                conversation = _conversation.value.dropLast(1),
+                conversation = _conversation.value.dropLast(1), // don't include the just-added message
                 userLanguage = _currentLanguage.value
             )
 
@@ -307,6 +208,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                 VoiceState.Done
             }
 
+            // Add assistant message to conversation
             if (!response.isError) {
                 val assistantMessage = ConversationMessage(
                     role = MessageRole.ASSISTANT,
@@ -314,6 +216,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 _conversation.value = _conversation.value + assistantMessage
 
+                // Auto-speak short responses if TTS is enabled
                 if (_ttsEnabled.value) {
                     val textToSpeak = buildSpeakableText(response)
                     ttsManager.speak(textToSpeak, force = false)
@@ -327,7 +230,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         if (response.needsClarification && response.clarifyingQuestion != null) {
             sb.append(". ").append(response.clarifyingQuestion)
         } else if (response.suggestedNextStep != null) {
-            sb.append(". ").append(response.suggestedNextStep)
+            sb.append(". Next step: ").append(response.suggestedNextStep)
         }
         return sb.toString()
     }
@@ -336,16 +239,19 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // TTS Controls
     // ------------------------------------------------------------------
 
+    /** Play/replay the current response aloud (user-forced, ignores length limit). */
     fun speakCurrentResponse() {
         val response = _currentResponse.value ?: return
         val text = buildSpeakableText(response)
         ttsManager.speak(text, force = true)
     }
 
+    /** Stop TTS immediately. */
     fun stopSpeaking() {
         ttsManager.stop()
     }
 
+    /** Toggle TTS on/off. */
     fun toggleTts() {
         _ttsEnabled.value = !_ttsEnabled.value
         if (!_ttsEnabled.value) {
@@ -353,6 +259,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** Update speech rate (0.5–1.5). */
     fun setSpeechRate(rate: Float) {
         _speechRate.value = rate
         ttsManager.setSpeechRate(rate)
@@ -362,20 +269,23 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // Conversation
     // ------------------------------------------------------------------
 
+    /** Clear all conversation history and reset to idle. */
     fun clearConversation() {
         _conversation.value = emptyList()
         _currentResponse.value = null
         _transcript.value = ""
         _voiceState.value = VoiceState.Idle
         lastTranscript = ""
-        clearHighlight()
         ttsManager.stop()
     }
+
+    // ------------------------------------------------------------------
+    // Lifecycle
+    // ------------------------------------------------------------------
 
     override fun onCleared() {
         super.onCleared()
         speechManager.destroy()
         ttsManager.shutdown()
-        clearHighlight()
     }
 }
