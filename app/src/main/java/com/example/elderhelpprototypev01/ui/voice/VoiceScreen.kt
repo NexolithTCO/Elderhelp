@@ -48,25 +48,14 @@ fun VoiceScreen(
     modifier: Modifier = Modifier
 ) {
     val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
-    val engineState by viewModel.engineState.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val isSpeaking by viewModel.isSpeaking.collectAsStateWithLifecycle()
     val ttsEnabled by viewModel.ttsEnabled.collectAsStateWithLifecycle()
     val speechRate by viewModel.speechRate.collectAsStateWithLifecycle()
-    val isWakeWordActive by viewModel.isWakeWordActive.collectAsStateWithLifecycle()
 
     val scrollState = rememberScrollState()
-
-    // Consume GO_BACK navigation events from the ViewModel
-    LaunchedEffect(Unit) {
-        viewModel.navigationEvent.collect { action ->
-            when (action) {
-                SahaayViewModel.NavigationAction.NavigateBack -> onNavigateBack()
-            }
-        }
-    }
 
     // Microphone permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -128,22 +117,6 @@ fun VoiceScreen(
         }
 
         Spacer(modifier = Modifier.height(12.dp))
-
-        // ---- Wake Word Badge ----
-        // Shown when the engine is passively listening for "Hey Sahayak"
-        AnimatedVisibility(
-            visible = isWakeWordActive || engineState is VoiceInteractionState.WakeWordListening,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            Column {
-                WakeWordBadge(
-                    isActive = true,
-                    modifier = Modifier.align(Alignment.Start)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-        }
 
         // ---- Permission Banner (shown when not granted) ----
         if (voiceState is VoiceState.RequestingPermission) {
@@ -208,16 +181,15 @@ fun VoiceScreen(
         // ---- Clarification Card (Conversational Repair) ----
         // Displayed when the LLM needs one more piece of information.
         AnimatedVisibility(
-            visible = engineState is VoiceInteractionState.WaitingForClarification,
+            visible = currentResponse?.needsClarification == true,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
             exit = fadeOut()
         ) {
-            val clarificationState = engineState as? VoiceInteractionState.WaitingForClarification
-            clarificationState?.let { state ->
+            currentResponse?.clarifyingQuestion?.let { question ->
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Spacer(modifier = Modifier.height(20.dp))
                     ClarificationCard(
-                        question = state.question,
+                        question = question,
                         onMicClick = {
                             if (viewModel.hasMicPermission()) {
                                 viewModel.startListening()

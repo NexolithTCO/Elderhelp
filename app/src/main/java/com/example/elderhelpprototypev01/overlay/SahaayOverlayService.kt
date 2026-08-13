@@ -15,6 +15,7 @@ import android.view.WindowManager
 import androidx.core.app.NotificationCompat
 import com.example.elderhelpprototypev01.MainActivity
 import com.example.elderhelpprototypev01.R
+import com.example.elderhelpprototypev01.screen.ScreenAssistantEngine
 
 /**
  * SahaayOverlayService
@@ -22,6 +23,10 @@ import com.example.elderhelpprototypev01.R
  * A foreground service that manages the floating Sahaay overlay window.
  * It runs persistently when enabled, keeping the floating button visible
  * above all other applications.
+ *
+ * Owns a [ScreenAssistantEngine] that runs the full screen-reading pipeline
+ * directly from the service context — no Activity switch needed for
+ * "Read Screen", "Explain", and "What next?" actions.
  *
  * Lifecycle:
  *  - Started by MainActivity when user enables overlay & has overlay permission
@@ -34,6 +39,8 @@ class SahaayOverlayService : Service() {
         private const val CHANNEL_ID = "sahaay_overlay_channel"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP_OVERLAY = "com.example.elderhelpprototypev01.STOP_OVERLAY"
+        const val ACTION_ANALYZE_SCREEN = "com.example.elderhelpprototypev01.ANALYZE_SCREEN"
+        const val EXTRA_GOAL = "screen_goal"
 
         fun startIntent(context: Context): Intent =
             Intent(context, SahaayOverlayService::class.java)
@@ -42,10 +49,20 @@ class SahaayOverlayService : Service() {
             Intent(context, SahaayOverlayService::class.java).apply {
                 action = ACTION_STOP_OVERLAY
             }
+
+        fun analyzeScreenIntent(context: Context, goal: String): Intent =
+            Intent(context, SahaayOverlayService::class.java).apply {
+                action = ACTION_ANALYZE_SCREEN
+                putExtra(EXTRA_GOAL, goal)
+            }
     }
 
     private var windowManager: WindowManager? = null
     private var overlayView: SahaayOverlayView? = null
+
+    /** Screen assistant engine — runs accessibility + Gemini + TTS + Highlight directly */
+    var screenEngine: ScreenAssistantEngine? = null
+        private set
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -53,19 +70,31 @@ class SahaayOverlayService : Service() {
         super.onCreate()
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
+
+        // Initialize the screen assistant engine for overlay-based screen reading
+        screenEngine = ScreenAssistantEngine(applicationContext)
+
         showOverlay()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP_OVERLAY) {
-            SahaayPreferences.setOverlayEnabled(this, false)
-            stopSelf()
+        when (intent?.action) {
+            ACTION_STOP_OVERLAY -> {
+                SahaayPreferences.setOverlayEnabled(this, false)
+                stopSelf()
+            }
+            ACTION_ANALYZE_SCREEN -> {
+                val goal = intent.getStringExtra(EXTRA_GOAL) ?: "Read this screen"
+                screenEngine?.analyzeAndGuide(goal)
+            }
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
         removeOverlay()
+        screenEngine?.destroy()
+        screenEngine = null
         super.onDestroy()
     }
 

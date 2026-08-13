@@ -149,6 +149,10 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                     is SpeechRecognizerManager.SpeechEvent.Stopped -> {
                         // Stopped by user — do nothing, wait for result or already processed
                     }
+                    is SpeechRecognizerManager.SpeechEvent.WakeWordDetected -> {
+                        // Wake word detected — transition to active listening
+                        _voiceState.value = VoiceState.Listening
+                    }
                 }
             }
         }
@@ -183,7 +187,7 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // LLM Processing
     // ------------------------------------------------------------------
 
-    private fun processTranscript(text: String) {
+    fun processTranscript(text: String) {
         _voiceState.value = VoiceState.Processing
         _currentResponse.value = AssistantResponse.loading()
 
@@ -277,6 +281,15 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         _voiceState.value = VoiceState.Idle
         lastTranscript = ""
         ttsManager.stop()
+    }
+
+    /** Analyze current screen and highlight target for in-app requests. */
+    fun analyzeCurrentScreenAndHighlight(goal: String) {
+        val intent = com.example.elderhelpprototypev01.overlay.SahaayOverlayService.analyzeScreenIntent(
+            getApplication(),
+            goal
+        )
+        getApplication<Application>().startService(intent)
     }
 
     // ------------------------------------------------------------------

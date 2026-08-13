@@ -105,28 +105,20 @@ class SahaayOverlayView(
                 context.startActivity(intent)
                 collapseMenu()
             }, "Voice"),
-            SubAction("Screen", "👁️", Math.toRadians(270.0), { // Top
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "Read this screen")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                context.startActivity(intent)
+            SubAction("Screen", "👁️", Math.toRadians(270.0), { // Top — READ SCREEN
+                // Runs directly in the overlay service — NO app switch!
+                val intent = SahaayOverlayService.analyzeScreenIntent(context, "Read this screen")
+                context.startService(intent)
                 collapseMenu()
             }, "Read Screen"),
-            SubAction("Explain", "💡", Math.toRadians(180.0), { // Left
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "Explain this screen")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                context.startActivity(intent)
+            SubAction("Explain", "💡", Math.toRadians(180.0), { // Left — EXPLAIN
+                val intent = SahaayOverlayService.analyzeScreenIntent(context, "Explain this screen")
+                context.startService(intent)
                 collapseMenu()
             }, "Explain"),
-            SubAction("Help", "🆘", Math.toRadians(225.0), { // Bottom-left
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "What should I do next?")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                }
-                context.startActivity(intent)
+            SubAction("Help", "🆘", Math.toRadians(225.0), { // Bottom-left — WHAT NEXT
+                val intent = SahaayOverlayService.analyzeScreenIntent(context, "What should I do next?")
+                context.startService(intent)
                 collapseMenu()
             }, "Help")
         )
