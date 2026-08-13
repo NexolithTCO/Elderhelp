@@ -45,6 +45,7 @@ fun SahaayHomeScreen(
     var isListening by remember { mutableStateOf(false) }
     var activeMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
+    var isSosModalOpen by remember { mutableStateOf(false) }
 
     // Sync language preference to ViewModel whenever it changes
     LaunchedEffect(currentLanguage) {
@@ -212,7 +213,18 @@ fun SahaayHomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(18.dp))
+
+                            // High-Contrast Emergency SOS Pill Button
+                            EmergencySosButton(
+                                onClick = {
+                                    isSosModalOpen = true
+                                },
+                                currentLanguage = currentLanguage,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(22.dp))
 
                             // Localized Quick Services Grid
                             QuickActionsSection(
@@ -271,6 +283,19 @@ fun SahaayHomeScreen(
                                     }
                                 }
                             }
+                        }
+
+                        // Emergency SOS Guardrail Countdown Modal Overlay
+                        if (isSosModalOpen) {
+                            EmergencySosModal(
+                                onDismiss = { isSosModalOpen = false },
+                                onEmergencyTriggered = {
+                                    activeMessage = "Emergency call initiated to Rahul (+91 98765 43210)"
+                                },
+                                contactName = "Rahul",
+                                contactNumber = "+91 98765 43210",
+                                currentLanguage = currentLanguage
+                            )
                         }
                     }
                 }

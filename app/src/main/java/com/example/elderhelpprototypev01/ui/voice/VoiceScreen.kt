@@ -21,32 +21,52 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.elderhelpprototypev01.SahaayViewModel
+import com.example.elderhelpprototypev01.model.VoiceInteractionState
 import com.example.elderhelpprototypev01.model.VoiceState
+import com.example.elderhelpprototypev01.ui.components.ClarificationCard
+import com.example.elderhelpprototypev01.ui.components.WakeWordBadge
 import com.example.elderhelpprototypev01.ui.theme.*
 
 /**
  * VoiceScreen
  *
- * The full-page voice assistant screen:
- * 1. Microphone permission handling
- * 2. VoiceInputPanel (mic button + transcript)
- * 3. ConversationPanel (scrollable chat history)
- * 4. ResponseCard (latest response with TTS controls)
+ * The full-page voice assistant screen.
+ * Updated for the Voice Interaction Engine to show:
+ *  1. [WakeWordBadge]      — pulsing badge while engine monitors for "Hey Sahayak"
+ *  2. [VoiceInputPanel]    — mic button + live transcript
+ *  3. [ClarificationCard]  — warm amber card when LLM requests a repair clarification
+ *  4. [ConversationPanel]  — scrollable chat history
+ *  5. [ResponseCard]       — latest full response with TTS controls
+ *
+ * Engine state machine transitions are observed from [SahaayViewModel.engineState].
+ * Navigation events (GO_BACK anchor) are consumed via [SahaayViewModel.navigationEvent].
  */
 @Composable
 fun VoiceScreen(
     viewModel: SahaayViewModel,
+    onNavigateBack: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val voiceState by viewModel.voiceState.collectAsStateWithLifecycle()
+    val engineState by viewModel.engineState.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
     val conversation by viewModel.conversation.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val isSpeaking by viewModel.isSpeaking.collectAsStateWithLifecycle()
     val ttsEnabled by viewModel.ttsEnabled.collectAsStateWithLifecycle()
     val speechRate by viewModel.speechRate.collectAsStateWithLifecycle()
+    val isWakeWordActive by viewModel.isWakeWordActive.collectAsStateWithLifecycle()
 
     val scrollState = rememberScrollState()
+
+    // Consume GO_BACK navigation events from the ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.navigationEvent.collect { action ->
+            when (action) {
+                SahaayViewModel.NavigationAction.NavigateBack -> onNavigateBack()
+            }
+        }
+    }
 
     // Microphone permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -54,8 +74,6 @@ fun VoiceScreen(
     ) { granted ->
         if (granted) {
             viewModel.startListening()
-        } else {
-            // State will show the permission message
         }
     }
 
@@ -109,7 +127,23 @@ fun VoiceScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ---- Wake Word Badge ----
+        // Shown when the engine is passively listening for "Hey Sahayak"
+        AnimatedVisibility(
+            visible = isWakeWordActive || engineState is VoiceInteractionState.WakeWordListening,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Column {
+                WakeWordBadge(
+                    isActive = true,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+        }
 
         // ---- Permission Banner (shown when not granted) ----
         if (voiceState is VoiceState.RequestingPermission) {
@@ -171,6 +205,32 @@ fun VoiceScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        // ---- Clarification Card (Conversational Repair) ----
+        // Displayed when the LLM needs one more piece of information.
+        AnimatedVisibility(
+            visible = engineState is VoiceInteractionState.WaitingForClarification,
+            enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+            exit = fadeOut()
+        ) {
+            val clarificationState = engineState as? VoiceInteractionState.WaitingForClarification
+            clarificationState?.let { state ->
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    ClarificationCard(
+                        question = state.question,
+                        onMicClick = {
+                            if (viewModel.hasMicPermission()) {
+                                viewModel.startListening()
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+
         // ---- Conversation History ----
         AnimatedVisibility(
             visible = conversation.isNotEmpty(),
@@ -206,20 +266,24 @@ fun VoiceScreen(
             exit = fadeOut()
         ) {
             currentResponse?.let { response ->
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(modifier = Modifier.height(20.dp))
-                    ResponseCard(
-                        response = response,
-                        isSpeaking = isSpeaking,
-                        ttsEnabled = ttsEnabled,
-                        speechRate = speechRate,
-                        onPlayClick = { viewModel.speakCurrentResponse() },
-                        onStopClick = { viewModel.stopSpeaking() },
-                        onRetryClick = { viewModel.retryLastTranscript() },
-                        onToggleTts = { viewModel.toggleTts() },
-                        onSpeechRateChange = { viewModel.setSpeechRate(it) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                // Do not show a dedicated ResponseCard for vocal-anchor short-circuits —
+                // they are TTS-only feedback and don't need a full card.
+                if (!response.isVocalAnchor) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        ResponseCard(
+                            response = response,
+                            isSpeaking = isSpeaking,
+                            ttsEnabled = ttsEnabled,
+                            speechRate = speechRate,
+                            onPlayClick = { viewModel.speakCurrentResponse() },
+                            onStopClick = { viewModel.stopSpeaking() },
+                            onRetryClick = { viewModel.retryLastTranscript() },
+                            onToggleTts = { viewModel.toggleTts() },
+                            onSpeechRateChange = { viewModel.setSpeechRate(it) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

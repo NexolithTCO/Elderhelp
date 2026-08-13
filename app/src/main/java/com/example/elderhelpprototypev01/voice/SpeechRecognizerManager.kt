@@ -28,6 +28,12 @@ class SpeechRecognizerManager(private val context: Context) {
         data class FinalResult(val text: String) : SpeechEvent()
         data class Error(val message: String) : SpeechEvent()
         object Stopped : SpeechEvent()
+        /**
+         * Emitted when a partial result contains a recognized wake-word
+         * pattern (e.g. "Hey Sahayak"). The ViewModel can transition to
+         * full active listening without waiting for a final result.
+         */
+        object WakeWordDetected : SpeechEvent()
     }
 
     private val _events = Channel<SpeechEvent>(Channel.BUFFERED)
@@ -73,6 +79,10 @@ class SpeechRecognizerManager(private val context: Context) {
                         ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val partial = results?.firstOrNull() ?: return
                     if (partial.isNotBlank()) {
+                        // Check for wake-word before emitting partial result
+                        if (WakeWordDetector.isWakeWord(partial)) {
+                            _events.trySend(SpeechEvent.WakeWordDetected)
+                        }
                         _events.trySend(SpeechEvent.PartialResult(partial))
                     }
                 }

@@ -25,8 +25,12 @@ class TextToSpeechManager(private val context: Context) {
     companion object {
         /** Comfortable speech rate for elderly users (normal = 1.0f) */
         const val DEFAULT_SPEECH_RATE = 0.85f
-        /** Skip auto-play if text is longer than this many characters */
-        const val AUTO_PLAY_MAX_CHARS = 250
+        /**
+         * Skip auto-play if text is longer than this many characters.
+         * Raised from 250 → 400 to accommodate the engine's 2-3 sentence
+         * TTS-optimized outputs while still gating very long LLM explanations.
+         */
+        const val AUTO_PLAY_MAX_CHARS = 400
     }
 
     private var tts: TextToSpeech? = null
@@ -79,6 +83,29 @@ class TextToSpeechManager(private val context: Context) {
             "sahaay_response_${System.currentTimeMillis()}"
         )
         return true
+    }
+
+    /**
+     * Speak the given text after stripping any residual markdown characters.
+     *
+     * The Voice Interaction Engine instructs Gemini to output clean text,
+     * but this serves as a safety net in case the model adds formatting.
+     * Strips: `*`, `**`, `#`, `- `, `> `.
+     *
+     * @param text  The response text (potentially with stray markdown).
+     * @param force If true, speak even if text is long.
+     * @return true if speech was started.
+     */
+    fun speakRaw(text: String, force: Boolean = false): Boolean {
+        val cleaned = text
+            .replace(Regex("\\*{1,2}"), "")           // * and **
+            .replace(Regex("^#{1,6}\\s*", RegexOption.MULTILINE), "") // headings
+            .replace(Regex("^[-*]\\s+", RegexOption.MULTILINE), "")   // bullets
+            .replace(Regex("^>\\s+", RegexOption.MULTILINE), "")      // blockquotes
+            .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")          // [text](url)
+            .replace(Regex("\\s{2,}"), " ")                           // extra spaces
+            .trim()
+        return speak(cleaned, force)
     }
 
     /** Stop any ongoing speech immediately. */

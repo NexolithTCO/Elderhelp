@@ -28,7 +28,9 @@ data class AppStrings(
     val welcomePill: String,
     val settingsTitle: String,
     val settingsSubtitle: String,
-    val prefLanguageTitle: String
+    val prefLanguageTitle: String,
+    val emergencySos: String = "EMERGENCY SOS",
+    val cancel: String = "Cancel"
 )
 
 object Localization {
