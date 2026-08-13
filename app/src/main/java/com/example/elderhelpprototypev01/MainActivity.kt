@@ -1,5 +1,6 @@
 package com.example.elderhelpprototypev01
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,6 +27,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Intent extra: open the voice tab directly (used by overlay Voice button) */
         const val EXTRA_OPEN_VOICE_TAB = "open_voice_tab"
+        /** Intent extra: trigger immediate screen analysis (used by overlay Screen/Explain/Help buttons) */
+        const val EXTRA_ANALYZE_SCREEN = "analyze_screen"
     }
 
     // ViewModel owned at Activity scope — survives tab switches
@@ -41,8 +44,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Handle intent from overlay Voice button
-        handleVoiceTabIntent()
+        // Handle intent extras from overlay
+        handleIncomingIntents(intent)
 
         setContent {
             ElderHelpPrototypeV01Theme {
@@ -58,19 +61,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        handleVoiceTabIntent()
+        handleIncomingIntents(intent)
     }
 
     override fun onResume() {
         super.onResume()
-        // Increment tick → triggers recomposition → re-evaluates overlay permission state
         overlayRefreshTick++
 
-        // If the user just granted overlay permission AND had the overlay enabled,
-        // restart the service automatically.
         if (OverlayPermissionManager.canDrawOverlays(this) &&
             SahaayPreferences.isOverlayEnabled(this)
         ) {
@@ -78,9 +78,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun handleVoiceTabIntent() {
-        if (intent?.getBooleanExtra(EXTRA_OPEN_VOICE_TAB, false) == true) {
+    private fun handleIncomingIntents(intent: Intent?) {
+        if (intent == null) return
+
+        if (intent.getBooleanExtra(EXTRA_OPEN_VOICE_TAB, false)) {
             initialTab = 1
+        }
+
+        val analyzeCmd = intent.getStringExtra(EXTRA_ANALYZE_SCREEN)
+        if (!analyzeCmd.isNullOrBlank()) {
+            initialTab = 1 // Switch to Voice/Screen tab to show response
+            sahaayViewModel.analyzeCurrentScreenAndHighlight(analyzeCmd)
         }
     }
 

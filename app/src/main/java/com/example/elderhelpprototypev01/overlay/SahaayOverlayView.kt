@@ -98,7 +98,6 @@ class SahaayOverlayView(
 
         val subActions = listOf(
             SubAction("Voice", "🎙️", Math.toRadians(0.0), { // Right
-                // Open the Voice tab in the main app
                 val intent = Intent(context, MainActivity::class.java).apply {
                     putExtra(MainActivity.EXTRA_OPEN_VOICE_TAB, true)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -107,15 +106,27 @@ class SahaayOverlayView(
                 collapseMenu()
             }, "Voice"),
             SubAction("Screen", "👁️", Math.toRadians(270.0), { // Top
-                showPlaceholder(context, "Screen reading will be available here.")
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "Read this screen")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                context.startActivity(intent)
                 collapseMenu()
             }, "Read Screen"),
             SubAction("Explain", "💡", Math.toRadians(180.0), { // Left
-                showPlaceholder(context, "Screen explanation will be available here.")
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "Explain this screen")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                context.startActivity(intent)
                 collapseMenu()
             }, "Explain"),
             SubAction("Help", "🆘", Math.toRadians(225.0), { // Bottom-left
-                showPlaceholder(context, "Help options will be available here.")
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    putExtra(MainActivity.EXTRA_ANALYZE_SCREEN, "What should I do next?")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                }
+                context.startActivity(intent)
                 collapseMenu()
             }, "Help")
         )

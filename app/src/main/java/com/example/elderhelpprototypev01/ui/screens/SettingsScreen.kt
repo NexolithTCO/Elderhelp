@@ -131,6 +131,23 @@ fun SettingsScreen(
                             Toast.makeText(context, "Simple mode toggled", Toast.LENGTH_SHORT).show()
                         }
                     )
+                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    val isAccEnabled = remember { com.example.elderhelpprototypev01.accessibility.SahaayAccessibilityService.isServiceEnabled(context) }
+                    SettingsNavigationRow(
+                        title = "Sahaay Screen Inspector",
+                        value = if (isAccEnabled) "ON • Ready to highlight options" else "OFF • Tap to enable in Settings",
+                        icon = Icons.Default.Visibility,
+                        iconTint = if (isAccEnabled) Color(0xFF34C759) else Color(0xFFFF9500),
+                        onClick = {
+                            try {
+                                val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Please open Android Settings -> Accessibility", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    )
                 }
             }
 

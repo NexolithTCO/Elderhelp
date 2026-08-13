@@ -28,6 +28,7 @@ import com.example.elderhelpprototypev01.SahaayViewModel
 import com.example.elderhelpprototypev01.ui.components.*
 import com.example.elderhelpprototypev01.ui.localization.Localization
 import com.example.elderhelpprototypev01.ui.theme.*
+import com.example.elderhelpprototypev01.ui.demo.CareBookDemoScreen
 import com.example.elderhelpprototypev01.ui.voice.VoiceScreen
 
 @Composable
@@ -91,6 +92,15 @@ fun SahaayHomeScreen(
                             )
                         }
                     }
+                }
+                2 -> {
+                    // Tab Index 2: CareBook Doctor Appointment Demo
+                    CareBookDemoScreen(
+                        onVoiceCommandRequest = { cmd ->
+                            viewModel?.processTranscript(cmd)
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 3 -> {
                     // Tab Index 3: Settings Screen (uses hoisted currentLanguage & callback)
@@ -218,8 +228,12 @@ fun SahaayHomeScreen(
                             QuickActionsSection(
                                 currentLanguage = currentLanguage,
                                 onActionClick = { action ->
-                                    activeMessage = "${action.title} selected"
-                                    Toast.makeText(context, "${action.title} clicked", Toast.LENGTH_SHORT).show()
+                                    if (action.title.lowercase().contains("doctor") || action.title.lowercase().contains("appointment") || action.title.lowercase().contains("बुक")) {
+                                        selectedTab = 2
+                                    } else {
+                                        viewModel?.analyzeCurrentScreenAndHighlight(action.title)
+                                    }
+                                    Toast.makeText(context, "${action.title} selected", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )

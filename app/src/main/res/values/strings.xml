@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Elder help prototype V0.1</string>
+    <string name="accessibility_service_description">Sahaay Assistant Accessibility Service allows the assistant to read on-screen elements to guide elderly users safely and highlight options.</string>
 </resources>

@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Microphone for speech recognition -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Required for drawing over other apps (floating overlay) -->
+    <!-- Required for drawing over other apps (floating overlay & highlight overlay) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Required for foreground service that keeps overlay alive -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -43,6 +43,20 @@
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="assistive_technology" />
+        </service>
+
+        <!-- Sahaay Accessibility Service for Screen Inspection & Highlighting -->
+        <service
+            android:name=".accessibility.SahaayAccessibilityService"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+            android:exported="true"
+            android:label="Sahaay Accessibility Assistant">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
         </service>
 
     </application>
