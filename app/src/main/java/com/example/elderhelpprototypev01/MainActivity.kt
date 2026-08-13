@@ -13,6 +13,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,6 +30,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_OPEN_VOICE_TAB = "open_voice_tab"
         /** Intent extra: trigger immediate screen analysis (used by overlay Screen/Explain/Help buttons) */
         const val EXTRA_ANALYZE_SCREEN = "analyze_screen"
+        /** Intent extra: trigger emergency SOS button redirect directly from overlay */
+        const val EXTRA_TRIGGER_SOS = "trigger_sos"
     }
 
     // ViewModel owned at Activity scope — survives tab switches
@@ -39,6 +42,9 @@ class MainActivity : ComponentActivity() {
 
     // Which tab to open (can be set by overlay intent)
     private var initialTab by mutableIntStateOf(0)
+
+    // Track whether overlay requested immediate SOS modal trigger
+    private var openSosModalOnLaunch by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +60,8 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.padding(innerPadding),
                         overlayRefreshTick = overlayRefreshTick,
                         viewModel = sahaayViewModel,
-                        initialTab = initialTab
+                        initialTab = initialTab,
+                        openSosModalOnLaunch = openSosModalOnLaunch
                     )
                 }
             }
@@ -80,6 +87,11 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIncomingIntents(intent: Intent?) {
         if (intent == null) return
+
+        if (intent.getBooleanExtra(EXTRA_TRIGGER_SOS, false)) {
+            initialTab = 0
+            openSosModalOnLaunch = true
+        }
 
         if (intent.getBooleanExtra(EXTRA_OPEN_VOICE_TAB, false)) {
             initialTab = 1

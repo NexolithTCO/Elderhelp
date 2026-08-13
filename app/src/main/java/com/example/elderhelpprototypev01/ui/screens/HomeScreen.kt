@@ -36,7 +36,8 @@ fun SahaayHomeScreen(
     modifier: Modifier = Modifier,
     overlayRefreshTick: Int = 0,
     viewModel: SahaayViewModel? = null,
-    initialTab: Int = 0
+    initialTab: Int = 0,
+    openSosModalOnLaunch: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -46,7 +47,14 @@ fun SahaayHomeScreen(
     var isListening by remember { mutableStateOf(false) }
     var activeMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
-    var isSosModalOpen by remember { mutableStateOf(false) }
+    var isSosModalOpen by remember { mutableStateOf(openSosModalOnLaunch) }
+
+    LaunchedEffect(openSosModalOnLaunch) {
+        if (openSosModalOnLaunch) {
+            selectedTab = 0
+            isSosModalOpen = true
+        }
+    }
 
     // Sync language preference to ViewModel whenever it changes
     LaunchedEffect(currentLanguage) {
