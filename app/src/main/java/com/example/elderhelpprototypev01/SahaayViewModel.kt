@@ -10,6 +10,7 @@ import com.example.elderhelpprototypev01.ai.GeminiLlmService
 import com.example.elderhelpprototypev01.ai.LlmService
 import com.example.elderhelpprototypev01.model.AssistantResponse
 import com.example.elderhelpprototypev01.model.ConversationMessage
+import com.example.elderhelpprototypev01.model.FormSchema
 import com.example.elderhelpprototypev01.model.MessageRole
 import com.example.elderhelpprototypev01.model.VoiceState
 import com.example.elderhelpprototypev01.voice.SpeechRecognizerManager
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
  *
  * Single source of truth for the entire voice assistant pipeline:
  *   Voice Input → STT → LLM → Response → TTS
+ * Also handles Voice-to-Form Filling state and processing.
  *
  * Owned at the Activity scope so state persists across tab switches.
  * The UI never talks directly to SpeechRecognizer, TTS, or the LLM.
@@ -67,6 +69,22 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _currentLanguage = MutableStateFlow("English (India)")
     val currentLanguage: StateFlow<String> = _currentLanguage.asStateFlow()
+
+    // ------------------------------------------------------------------
+    // Voice-to-Form State Flows
+    // ------------------------------------------------------------------
+
+    private val _activeForm = MutableStateFlow<FormSchema?>(null)
+    val activeForm: StateFlow<FormSchema?> = _activeForm.asStateFlow()
+
+    private val _formValues = MutableStateFlow<Map<String, String>>(emptyMap())
+    val formValues: StateFlow<Map<String, String>> = _formValues.asStateFlow()
+
+    private val _activeFieldId = MutableStateFlow<String?>(null)
+    val activeFieldId: StateFlow<String?> = _activeFieldId.asStateFlow()
+
+    private val _isExtractingForm = MutableStateFlow(false)
+    val isExtractingForm: StateFlow<Boolean> = _isExtractingForm.asStateFlow()
 
     private var speechCollectionJob: Job? = null
     private var lastTranscript: String = ""
@@ -140,7 +158,11 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                         _transcript.value = text
                         lastTranscript = text
                         speechCollectionJob?.cancel()
-                        processTranscript(text)
+                        if (_activeForm.value == null) {
+                            processTranscript(text)
+                        } else {
+                            processFormVoiceInput(text)
+                        }
                     }
                     is SpeechRecognizerManager.SpeechEvent.Error -> {
                         _voiceState.value = VoiceState.Error(event.message)
@@ -167,7 +189,11 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     /** Retry the last recognized transcript through the LLM again. */
     fun retryLastTranscript() {
         if (lastTranscript.isNotBlank()) {
-            processTranscript(lastTranscript)
+            if (_activeForm.value == null) {
+                processTranscript(lastTranscript)
+            } else {
+                processFormVoiceInput(lastTranscript)
+            }
         } else {
             startListening()
         }
@@ -180,7 +206,75 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // ------------------------------------------------------------------
-    // LLM Processing
+    // Voice-to-Form Management & Processing
+    // ------------------------------------------------------------------
+
+    /** Select a form to begin voice-to-form filling. */
+    fun selectForm(form: FormSchema) {
+        _activeForm.value = form
+        _formValues.value = emptyMap()
+        _activeFieldId.value = null
+        _isExtractingForm.value = false
+    }
+
+    /** Manually update or override a form field value. */
+    fun updateFormField(fieldId: String, value: String) {
+        _formValues.value = _formValues.value + (fieldId to value)
+    }
+
+    /** Clear the active form selection and reset extracted form values. */
+    fun clearForm() {
+        _activeForm.value = null
+        _formValues.value = emptyMap()
+        _activeFieldId.value = null
+        _isExtractingForm.value = false
+    }
+
+    /**
+     * Process voice input specifically for extracting form fields.
+     */
+    fun processFormVoiceInput(transcript: String) {
+        val form = _activeForm.value ?: return
+        if (transcript.isBlank()) return
+
+        _voiceState.value = VoiceState.Processing
+        _isExtractingForm.value = true
+
+        viewModelScope.launch {
+            try {
+                val targetFields = form.fields.map { it.id }
+                val extracted = llmService.extractFormFields(
+                    transcript = transcript,
+                    targetFields = targetFields,
+                    userLanguage = _currentLanguage.value
+                )
+
+                _voiceState.value = VoiceState.Done
+
+                if (extracted.isNotEmpty()) {
+                    _formValues.value = _formValues.value + extracted
+                    if (_ttsEnabled.value) {
+                        val spokenSummary = extracted.entries.joinToString(", ") { (fieldId, value) ->
+                            val fieldLabel = form.fields.find { it.id == fieldId }?.label ?: fieldId
+                            "$fieldLabel set to $value"
+                        }
+                        ttsManager.speak("Updated: $spokenSummary", force = false)
+                    }
+                } else {
+                    if (_ttsEnabled.value) {
+                        ttsManager.speak("I couldn't identify matching form details. Please try speaking again.", force = false)
+                    }
+                }
+            } catch (e: Exception) {
+                _voiceState.value = VoiceState.Error("Failed to extract form fields. Please try again.")
+            } finally {
+                _isExtractingForm.value = false
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // LLM Processing (General Voice Assistant)
     // ------------------------------------------------------------------
 
     private fun processTranscript(text: String) {
@@ -289,3 +383,4 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
         ttsManager.shutdown()
     }
 }
+

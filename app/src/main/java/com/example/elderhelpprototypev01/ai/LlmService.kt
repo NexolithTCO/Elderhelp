@@ -32,4 +32,10 @@ interface LlmService {
         conversation: List<ConversationMessage> = emptyList(),
         userLanguage: String = "English (India)"
     ): AssistantResponse
+
+    suspend fun extractFormFields(
+        transcript: String,
+        targetFields: List<String>,
+        userLanguage: String = "English (India)"
+    ): Map<String, String>
 }

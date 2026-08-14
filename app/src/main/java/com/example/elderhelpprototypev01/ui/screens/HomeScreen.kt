@@ -24,7 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.elderhelpprototypev01.SahaayViewModel
+import com.example.elderhelpprototypev01.model.FormField
+import com.example.elderhelpprototypev01.model.FormSchema
 import com.example.elderhelpprototypev01.ui.components.*
 import com.example.elderhelpprototypev01.ui.localization.Localization
 import com.example.elderhelpprototypev01.ui.theme.*
@@ -46,6 +49,10 @@ fun SahaayHomeScreen(
     var activeMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
 
+    // Observe activeForm from ViewModel
+    val activeFormState = viewModel?.activeForm?.collectAsStateWithLifecycle()
+    val activeForm = activeFormState?.value
+
     // Sync language preference to ViewModel whenever it changes
     LaunchedEffect(currentLanguage) {
         viewModel?.setLanguage(currentLanguage)
@@ -54,220 +61,246 @@ fun SahaayHomeScreen(
     val scrollState = rememberScrollState()
     val strings = Localization.getStrings(currentLanguage)
 
-    Scaffold(
-        bottomBar = {
-            BottomNavigationBar(
-                selectedTab = selectedTab,
-                currentLanguage = currentLanguage,
-                onTabSelected = { index ->
-                    selectedTab = index
-                }
-            )
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Crossfade(
-            targetState = selectedTab,
-            label = "tabCrossfade",
-            modifier = Modifier.padding(innerPadding)
-        ) { tabIndex ->
-            when (tabIndex) {
-                1 -> {
-                    // Tab Index 1: Voice Assistant Screen
-                    if (viewModel != null) {
-                        VoiceScreen(
-                            viewModel = viewModel,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // Preview fallback
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "🎙️ Voice Assistant",
-                                style = Typography.headlineMedium.copy(color = AppleTextMuted)
+    if (activeForm != null) {
+        // Voice-to-Form Filling Screen
+        FormFillingScreen(
+            viewModel = viewModel!!,
+            onBackClick = {
+                viewModel.clearForm()
+            },
+            modifier = modifier.fillMaxSize()
+        )
+    } else {
+        Scaffold(
+            bottomBar = {
+                BottomNavigationBar(
+                    selectedTab = selectedTab,
+                    currentLanguage = currentLanguage,
+                    onTabSelected = { index ->
+                        selectedTab = index
+                    }
+                )
+            },
+            modifier = modifier.fillMaxSize()
+        ) { innerPadding ->
+            Crossfade(
+                targetState = selectedTab,
+                label = "tabCrossfade",
+                modifier = Modifier.padding(innerPadding)
+            ) { tabIndex ->
+                when (tabIndex) {
+                    1 -> {
+                        // Tab Index 1: Voice Assistant Screen
+                        if (viewModel != null) {
+                            VoiceScreen(
+                                viewModel = viewModel,
+                                modifier = Modifier.fillMaxSize()
                             )
+                        } else {
+                            // Preview fallback
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "🎙️ Voice Assistant",
+                                    style = Typography.headlineMedium.copy(color = AppleTextMuted)
+                                )
+                            }
                         }
                     }
-                }
-                3 -> {
-                    // Tab Index 3: Settings Screen (uses hoisted currentLanguage & callback)
-                    SettingsScreen(
-                        currentLanguage = currentLanguage,
-                        onLanguageChange = { newLang ->
-                            currentLanguage = newLang
-                        }
-                    )
-                }
-                else -> {
-                    // Main Home Screen (Uses localized strings everywhere)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(AppleCanvasBg)
-                    ) {
-                        Column(
+                    3 -> {
+                        // Tab Index 3: Settings Screen (uses hoisted currentLanguage & callback)
+                        SettingsScreen(
+                            currentLanguage = currentLanguage,
+                            onLanguageChange = { newLang ->
+                                currentLanguage = newLang
+                            }
+                        )
+                    }
+                    else -> {
+                        // Main Home Screen (Uses localized strings everywhere)
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(scrollState)
-                                .padding(horizontal = 18.dp)
-                                .padding(top = 16.dp, bottom = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Top
+                                .background(AppleCanvasBg)
                         ) {
-                            // Top Header Row
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
+                                    .padding(horizontal = 18.dp)
+                                    .padding(top = 16.dp, bottom = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Top
                             ) {
-                                // Profile Avatar + App Name & Localized Subtitle
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(AppleBlueLight)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = "Profile",
-                                            tint = AppleBlue,
-                                            modifier = Modifier.size(24.dp)
-                                        )
+                                // Top Header Row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Profile Avatar + App Name & Localized Subtitle
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(AppleBlueLight)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = "Profile",
+                                                tint = AppleBlue,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        Column {
+                                            Text(
+                                                text = "ElderhelpV0.1",
+                                                style = Typography.titleLarge.copy(
+                                                    fontSize = 22.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = AppleTextPrimary
+                                                )
+                                            )
+                                            Text(
+                                                text = strings.appSubtitle,
+                                                style = Typography.bodyMedium.copy(
+                                                    fontSize = 13.sp,
+                                                    color = AppleTextMuted
+                                                )
+                                            )
+                                        }
                                     }
 
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = "ElderhelpV0.1",
-                                            style = Typography.titleLarge.copy(
-                                                fontSize = 22.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = AppleTextPrimary
+                                    // Search & Notifications
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(onClick = {
+                                            Toast.makeText(context, "Search clicked", Toast.LENGTH_SHORT).show()
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = "Search",
+                                                tint = AppleTextPrimary,
+                                                modifier = Modifier.size(24.dp)
                                             )
-                                        )
-                                        Text(
-                                            text = strings.appSubtitle,
-                                            style = Typography.bodyMedium.copy(
-                                                fontSize = 13.sp,
-                                                color = AppleTextMuted
+                                        }
+                                        IconButton(onClick = {
+                                            Toast.makeText(context, "Notifications clicked", Toast.LENGTH_SHORT).show()
+                                        }) {
+                                            Icon(
+                                                imageVector = Icons.Default.Notifications,
+                                                contentDescription = "Notifications",
+                                                tint = AppleTextPrimary,
+                                                modifier = Modifier.size(24.dp)
                                             )
-                                        )
+                                        }
                                     }
                                 }
 
-                                // Search & Notifications
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = {
-                                        Toast.makeText(context, "Search clicked", Toast.LENGTH_SHORT).show()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = "Search",
-                                            tint = AppleTextPrimary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        Toast.makeText(context, "Notifications clicked", Toast.LENGTH_SHORT).show()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Notifications,
-                                            contentDescription = "Notifications",
-                                            tint = AppleTextPrimary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Localized Status Tag Chip
+                                StatusCard(
+                                    isListening = isListening,
+                                    statusText = strings.statusText,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(18.dp))
+
+                                // Localized Hero Circular Voice Assistant Banner
+                                MicrophoneButton(
+                                    isListening = isListening,
+                                    currentLanguage = currentLanguage,
+                                    onClick = {
+                                        isListening = !isListening
+                                        activeMessage = if (isListening) {
+                                            "${strings.listeningText}"
+                                        } else {
+                                            "Voice mode paused."
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                // Localized Quick Services Grid
+                                QuickActionsSection(
+                                    currentLanguage = currentLanguage,
+                                    onActionClick = { action ->
+                                        if (action.id == "forms") {
+                                            val pensionForm = FormSchema(
+                                                id = "pension_form",
+                                                title = strings.formsTitle,
+                                                fields = listOf(
+                                                    FormField("full_name", "Full Name", required = true),
+                                                    FormField("age", "Age", required = true),
+                                                    FormField("phone_number", "Phone Number", required = true),
+                                                    FormField("address", "Full Address", required = true),
+                                                    FormField("pension_id", "Pension / ID Number", required = false)
+                                                )
+                                            )
+                                            viewModel?.selectForm(pensionForm)
+                                        } else {
+                                            activeMessage = "${action.title} selected"
+                                            Toast.makeText(context, "${action.title} clicked", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Sahaay Floating Overlay Toggle Card
+                                OverlayToggleCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    refreshTick = overlayRefreshTick
+                                )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Localized Status Tag Chip
-                            StatusCard(
-                                isListening = isListening,
-                                statusText = strings.statusText,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            // Localized Hero Circular Voice Assistant Banner
-                            MicrophoneButton(
-                                isListening = isListening,
-                                currentLanguage = currentLanguage,
-                                onClick = {
-                                    isListening = !isListening
-                                    activeMessage = if (isListening) {
-                                        "${strings.listeningText}"
-                                    } else {
-                                        "Voice mode paused."
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            // Localized Quick Services Grid
-                            QuickActionsSection(
-                                currentLanguage = currentLanguage,
-                                onActionClick = { action ->
-                                    activeMessage = "${action.title} selected"
-                                    Toast.makeText(context, "${action.title} clicked", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Sahaay Floating Overlay Toggle Card
-                            OverlayToggleCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                refreshTick = overlayRefreshTick
-                            )
-                        }
-
-                        // Active Feedback Toast / Banner
-                        AnimatedVisibility(
-                            visible = activeMessage != null,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 16.dp, start = 20.dp, end = 20.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = AppleTextPrimary,
-                                shadowElevation = 8.dp
+                            // Active Feedback Toast / Banner
+                            AnimatedVisibility(
+                                visible = activeMessage != null,
+                                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                                exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 16.dp, start = 20.dp, end = 20.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = AppleTextPrimary,
+                                    shadowElevation = 8.dp
                                 ) {
-                                    Text(
-                                        text = activeMessage ?: "",
-                                        style = Typography.bodyLarge.copy(
-                                            color = Color.White,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    TextButton(onClick = { activeMessage = null }) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
                                         Text(
-                                            text = "OK",
-                                            color = Color(0xFF64D2FF),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
+                                            text = activeMessage ?: "",
+                                            style = Typography.bodyLarge.copy(
+                                                color = Color.White,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
                                         )
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        TextButton(onClick = { activeMessage = null }) {
+                                            Text(
+                                                text = "OK",
+                                                color = Color(0xFF64D2FF),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -286,3 +319,4 @@ fun SahaayHomeScreenPreview() {
         SahaayHomeScreen()
     }
 }
+
