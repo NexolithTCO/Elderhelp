@@ -37,6 +37,7 @@ class SahaayOverlayService : Service() {
         const val ACTION_STOP_OVERLAY = "com.example.elderhelpprototypev01.STOP_OVERLAY"
         const val ACTION_ANALYZE_SCREEN = "com.example.elderhelpprototypev01.ANALYZE_SCREEN"
         const val ACTION_VOICE_HIGHLIGHT = "com.example.elderhelpprototypev01.VOICE_HIGHLIGHT"
+        const val ACTION_CLEAR_HIGHLIGHT = "com.example.elderhelpprototypev01.CLEAR_HIGHLIGHT"
         const val EXTRA_GOAL = "screen_goal"
 
         fun startIntent(context: Context): Intent =
@@ -56,6 +57,11 @@ class SahaayOverlayService : Service() {
         fun voiceHighlightIntent(context: Context): Intent =
             Intent(context, SahaayOverlayService::class.java).apply {
                 action = ACTION_VOICE_HIGHLIGHT
+            }
+
+        fun clearHighlightIntent(context: Context): Intent =
+            Intent(context, SahaayOverlayService::class.java).apply {
+                action = ACTION_CLEAR_HIGHLIGHT
             }
     }
 
@@ -91,15 +97,39 @@ class SahaayOverlayService : Service() {
             ACTION_VOICE_HIGHLIGHT -> {
                 screenEngine?.startVoiceListeningAndHighlight()
             }
+            ACTION_CLEAR_HIGHLIGHT -> {
+                com.example.elderhelpprototypev01.highlight.HighlightManager.clearHighlight(this)
+                screenEngine?.clearHighlight()
+            }
         }
-        return START_STICKY
+        return START_NOT_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        cleanupService()
+        stopSelf()
     }
 
     override fun onDestroy() {
+        cleanupService()
+        super.onDestroy()
+    }
+
+    private fun cleanupService() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (e: Exception) {
+            // Ignore if notification was not attached
+        }
         removeOverlay()
         screenEngine?.destroy()
         screenEngine = null
-        super.onDestroy()
     }
 
     // ------------------------------------------------------------------
@@ -113,6 +143,7 @@ class SahaayOverlayService : Service() {
         val density = resources.displayMetrics.density
         val totalPx = (SahaayOverlayView.TOTAL_VIEW_SIZE_DP * density).toInt()
 
+        val buttonOffsetPx = (88 * density).toInt() // Center offset of 64dp button inside 240dp FrameLayout
         val params = WindowManager.LayoutParams(
             totalPx,
             totalPx,
@@ -127,8 +158,8 @@ class SahaayOverlayService : Service() {
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = (resources.displayMetrics.widthPixels - totalPx - 16).coerceAtLeast(0)
-            y = (resources.displayMetrics.heightPixels / 3)
+            x = (resources.displayMetrics.widthPixels - totalPx + buttonOffsetPx - (12 * density).toInt()).coerceAtLeast(0)
+            y = (resources.displayMetrics.heightPixels / 4)
         }
 
         overlayView = SahaayOverlayView(this, windowManager!!, params)

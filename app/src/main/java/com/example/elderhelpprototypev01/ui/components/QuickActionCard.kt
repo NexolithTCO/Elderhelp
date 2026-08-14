@@ -10,7 +10,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,9 +26,11 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.elderhelpprototypev01.ui.theme.*
+import com.example.elderhelpprototypev01.ui.theme.SahaayCorners
+import com.example.elderhelpprototypev01.ui.theme.SahaayElevation
+import com.example.elderhelpprototypev01.ui.theme.SahaaySpacing
 
 @Composable
 fun QuickActionCard(
@@ -42,94 +47,98 @@ fun QuickActionCard(
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy),
         label = "cardScale"
     )
 
     Surface(
         modifier = modifier
+            .fillMaxHeight()
             .scale(scale)
-            .border(1.dp, AppleBorderSubtle, RoundedCornerShape(20.dp))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(SahaayCorners.medium)
+            )
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
             ),
-        shape = RoundedCornerShape(20.dp),
-        color = AppleSurfaceWhite,
-        shadowElevation = 3.dp,
-        tonalElevation = 1.dp
+        shape = RoundedCornerShape(SahaayCorners.medium),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = SahaayElevation.low
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(SahaaySpacing.md),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Top Row: Icon Badge (Left) + Action Indicator (Right)
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon Badge Box
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(SahaayCorners.small))
                         .background(iconBgColor)
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = title,
                         tint = iconTint,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                // Title and Subtitle
-                Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Text(
-                        text = title,
-                        style = Typography.titleMedium.copy(
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = AppleTextPrimary
+                        text = actionButtonText,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         ),
                         maxLines = 1
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        style = Typography.bodyMedium.copy(
-                            fontSize = 13.sp,
-                            color = AppleTextMuted
-                        ),
-                        maxLines = 1
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
-            // Blue Pill Button matching Apple "Buy" buttons in reference image
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(36.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(AppleBlue),
-                contentAlignment = Alignment.Center
-            ) {
+            // Full-width Title and Subtitle Column
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = actionButtonText,
-                    style = Typography.bodyMedium.copy(
-                        color = Color.White,
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }

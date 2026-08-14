@@ -1,17 +1,13 @@
 package com.example.elderhelpprototypev01.ui.screens
 
-import android.widget.Toast
-import androidx.compose.animation.*
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -20,16 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.elderhelpprototypev01.R
 import com.example.elderhelpprototypev01.SahaayViewModel
 import com.example.elderhelpprototypev01.ui.components.*
+import com.example.elderhelpprototypev01.ui.demo.CareBookDemoScreen
+import com.example.elderhelpprototypev01.ui.demo.PayBillsDemoScreen
 import com.example.elderhelpprototypev01.ui.localization.Localization
 import com.example.elderhelpprototypev01.ui.theme.*
-import com.example.elderhelpprototypev01.ui.demo.CareBookDemoScreen
 import com.example.elderhelpprototypev01.ui.voice.VoiceScreen
+import java.util.Calendar
 
 @Composable
 fun SahaayHomeScreen(
@@ -41,13 +39,10 @@ fun SahaayHomeScreen(
 ) {
     val context = LocalContext.current
 
-    // Hoisted persistent state across tab switches and recompositions
-    // Default language is English — user can change in Settings
     var currentLanguage by rememberSaveable { mutableStateOf("English (India)") }
-    var isListening by remember { mutableStateOf(false) }
-    var activeMessage by remember { mutableStateOf<String?>(null) }
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
     var isSosModalOpen by remember { mutableStateOf(openSosModalOnLaunch) }
+    var activeServiceDemo by rememberSaveable { mutableIntStateOf(0) } // 0: CareBook Doctor, 1: Pay Bills
 
     LaunchedEffect(openSosModalOnLaunch) {
         if (openSosModalOnLaunch) {
@@ -56,13 +51,23 @@ fun SahaayHomeScreen(
         }
     }
 
-    // Sync language preference to ViewModel whenever it changes
     LaunchedEffect(currentLanguage) {
         viewModel?.setLanguage(currentLanguage)
     }
 
     val scrollState = rememberScrollState()
     val strings = Localization.getStrings(currentLanguage)
+
+    // Dynamic greeting based on time of day
+    val greetingText = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 4..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            in 17..21 -> "Good evening"
+            else -> "Hello"
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -83,36 +88,92 @@ fun SahaayHomeScreen(
         ) { tabIndex ->
             when (tabIndex) {
                 1 -> {
-                    // Tab Index 1: Voice Assistant Screen
+                    // Voice Assistant Tab
                     if (viewModel != null) {
                         VoiceScreen(
                             viewModel = viewModel,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // Preview fallback
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "🎙️ Voice Assistant",
-                                style = Typography.headlineMedium.copy(color = AppleTextMuted)
+                                text = "Voice Assistant",
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
                         }
                     }
                 }
                 2 -> {
-                    // Tab Index 2: CareBook Doctor Appointment Demo
-                    CareBookDemoScreen(
-                        onVoiceCommandRequest = { cmd ->
-                            viewModel?.processTranscript(cmd)
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    // Services Tab (Doctor Booking + Pay Bills)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = SahaayElevation.low
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = SahaaySpacing.md, vertical = SahaaySpacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm)
+                            ) {
+                                FilterChip(
+                                    selected = activeServiceDemo == 0,
+                                    onClick = { activeServiceDemo = 0 },
+                                    label = {
+                                        Text(
+                                            "Doctor Booking",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FilterChip(
+                                    selected = activeServiceDemo == 1,
+                                    onClick = { activeServiceDemo = 1 },
+                                    label = {
+                                        Text(
+                                            "Pay Utility Bills",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = SahaaySuccess,
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        if (activeServiceDemo == 0) {
+                            CareBookDemoScreen(
+                                onVoiceCommandRequest = { cmd ->
+                                    viewModel?.analyzeCurrentScreenAndHighlight(cmd)
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            PayBillsDemoScreen(
+                                onVoiceCommandRequest = { cmd ->
+                                    viewModel?.analyzeCurrentScreenAndHighlight(cmd)
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                 }
                 3 -> {
-                    // Tab Index 3: Settings Screen (uses hoisted currentLanguage & callback)
+                    // Settings Tab
                     SettingsScreen(
                         currentLanguage = currentLanguage,
                         onLanguageChange = { newLang ->
@@ -121,201 +182,117 @@ fun SahaayHomeScreen(
                     )
                 }
                 else -> {
-                    // Main Home Screen (Uses localized strings everywhere)
+                    // Home Screen
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(AppleCanvasBg)
+                            .background(MaterialTheme.colorScheme.background)
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .verticalScroll(scrollState)
-                                .padding(horizontal = 18.dp)
-                                .padding(top = 16.dp, bottom = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                                .padding(horizontal = SahaaySpacing.lg)
+                                .padding(top = SahaaySpacing.lg, bottom = 96.dp),
+                            horizontalAlignment = Alignment.Start,
                             verticalArrangement = Arrangement.Top
                         ) {
-                            // Top Header Row
+                            // Top Header: Pixel-aligned Greeting & Brand Logo
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.Top
                             ) {
-                                // Profile Avatar + App Name & Localized Subtitle
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(CircleShape)
-                                            .background(AppleBlueLight)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = "Profile",
-                                            tint = AppleBlue,
-                                            modifier = Modifier.size(24.dp)
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = greetingText,
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = FontWeight.Medium
                                         )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = "ElderhelpV0.1",
-                                            style = Typography.titleLarge.copy(
-                                                fontSize = 22.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = AppleTextPrimary
-                                            )
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "I'm Sahaay",
+                                        style = MaterialTheme.typography.displayLarge.copy(
+                                            color = MaterialTheme.colorScheme.onBackground,
+                                            fontWeight = FontWeight.Bold
                                         )
-                                        Text(
-                                            text = strings.appSubtitle,
-                                            style = Typography.bodyMedium.copy(
-                                                fontSize = 13.sp,
-                                                color = AppleTextMuted
-                                            )
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "How can I help you today?",
+                                        style = MaterialTheme.typography.bodyLarge.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    }
+                                    )
                                 }
 
-                                // Search & Notifications
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = {
-                                        Toast.makeText(context, "Search clicked", Toast.LENGTH_SHORT).show()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = "Search",
-                                            tint = AppleTextPrimary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                    IconButton(onClick = {
-                                        Toast.makeText(context, "Notifications clicked", Toast.LENGTH_SHORT).show()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.Notifications,
-                                            contentDescription = "Notifications",
-                                            tint = AppleTextPrimary,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
+                                Image(
+                                    painter = painterResource(id = R.drawable.ic_sahaay_logo),
+                                    contentDescription = "Sahaay Logo",
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .size(54.dp)
+                                        .clip(CircleShape)
+                                )
                             }
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
 
-                            // Localized Status Tag Chip
-                            StatusCard(
-                                isListening = isListening,
-                                statusText = strings.statusText,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            // Localized Hero Circular Voice Assistant Banner
-                            MicrophoneButton(
-                                isListening = isListening,
-                                currentLanguage = currentLanguage,
-                                onClick = {
-                                    isListening = !isListening
-                                    activeMessage = if (isListening) {
-                                        "${strings.listeningText}"
-                                    } else {
-                                        "Voice mode paused."
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(18.dp))
-
-                            // High-Contrast Emergency SOS Pill Button
+                            // Emergency SOS Button
                             EmergencySosButton(
-                                onClick = {
-                                    isSosModalOpen = true
-                                },
+                                onClick = { isSosModalOpen = true },
                                 currentLanguage = currentLanguage,
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(22.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
 
-                            // Localized Quick Services Grid
+                            // Hero Microphone Button
+                            MicrophoneButton(
+                                isListening = false,
+                                currentLanguage = currentLanguage,
+                                onClick = {
+                                    selectedTab = 1 // Switch to Voice tab
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
+
+                            // Quick Tasks Section
                             QuickActionsSection(
                                 currentLanguage = currentLanguage,
                                 onActionClick = { action ->
-                                    if (action.title.lowercase().contains("doctor") || action.title.lowercase().contains("appointment") || action.title.lowercase().contains("बुक")) {
+                                    val id = action.id.lowercase()
+                                    val title = action.title.lowercase()
+                                    if (id == "bills" || title.contains("bill") || title.contains("electricity") || title.contains("बिल")) {
                                         selectedTab = 2
+                                        activeServiceDemo = 1
+                                    } else if (id == "doctor" || title.contains("doctor") || title.contains("appointment") || title.contains("डाक्टर")) {
+                                        selectedTab = 2
+                                        activeServiceDemo = 0
                                     } else {
                                         viewModel?.analyzeCurrentScreenAndHighlight(action.title)
                                     }
-                                    Toast.makeText(context, "${action.title} selected", Toast.LENGTH_SHORT).show()
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
 
-                            // Sahaay Floating Overlay Toggle Card
+                            // Sahaay Overlay Assistant Card
                             OverlayToggleCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 refreshTick = overlayRefreshTick
                             )
                         }
 
-                        // Active Feedback Toast / Banner
-                        AnimatedVisibility(
-                            visible = activeMessage != null,
-                            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(bottom = 16.dp, start = 20.dp, end = 20.dp)
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(16.dp),
-                                color = AppleTextPrimary,
-                                shadowElevation = 8.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = activeMessage ?: "",
-                                        style = Typography.bodyLarge.copy(
-                                            color = Color.White,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    TextButton(onClick = { activeMessage = null }) {
-                                        Text(
-                                            text = "OK",
-                                            color = Color(0xFF64D2FF),
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // Emergency SOS Guardrail Countdown Modal Overlay
                         if (isSosModalOpen) {
                             EmergencySosModal(
                                 onDismiss = { isSosModalOpen = false },
-                                onEmergencyTriggered = {
-                                    activeMessage = "Emergency call initiated to Rahul (+91 98765 43210)"
-                                },
-                                contactName = "Rahul",
-                                contactNumber = "+91 98765 43210",
+                                onEmergencyTriggered = { isSosModalOpen = false },
                                 currentLanguage = currentLanguage
                             )
                         }
@@ -323,13 +300,5 @@ fun SahaayHomeScreen(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun SahaayHomeScreenPreview() {
-    ElderHelpPrototypeV01Theme {
-        SahaayHomeScreen()
     }
 }

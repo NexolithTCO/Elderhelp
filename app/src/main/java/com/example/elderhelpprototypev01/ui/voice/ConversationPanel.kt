@@ -6,6 +6,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,19 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.model.ConversationMessage
 import com.example.elderhelpprototypev01.model.MessageRole
 import com.example.elderhelpprototypev01.ui.theme.*
 
-/**
- * ConversationPanel
- *
- * Scrollable list of conversation messages.
- * User messages appear on the right (blue bubble).
- * Sahaay messages appear on the left (white bubble).
- * Large text for elderly accessibility.
- */
 @Composable
 fun ConversationPanel(
     messages: List<ConversationMessage>,
@@ -37,7 +33,6 @@ fun ConversationPanel(
 
     val listState = rememberLazyListState()
 
-    // Auto-scroll to latest message
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
@@ -47,8 +42,8 @@ fun ConversationPanel(
     LazyColumn(
         state = listState,
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        verticalArrangement = Arrangement.spacedBy(SahaaySpacing.md),
+        contentPadding = PaddingValues(vertical = SahaaySpacing.sm)
     ) {
         items(messages) { message ->
             MessageBubble(message)
@@ -65,55 +60,56 @@ private fun MessageBubble(message: ConversationMessage) {
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
         if (!isUser) {
-            // Sahaay avatar
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(AppleBlue, shape = RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(SahaayCorners.small)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "🤖",
-                    fontSize = 18.sp
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = "Sahaay",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(SahaaySpacing.sm))
         }
 
         Surface(
             shape = RoundedCornerShape(
-                topStart = if (isUser) 18.dp else 4.dp,
-                topEnd = if (isUser) 4.dp else 18.dp,
-                bottomStart = 18.dp,
-                bottomEnd = 18.dp
+                topStart = if (isUser) SahaayCorners.medium else 4.dp,
+                topEnd = if (isUser) 4.dp else SahaayCorners.medium,
+                bottomStart = SahaayCorners.medium,
+                bottomEnd = SahaayCorners.medium
             ),
-            color = if (isUser) AppleBlue else AppleSurfaceWhite,
-            shadowElevation = 2.dp,
+            color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+            shadowElevation = SahaayElevation.low,
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Text(
                 text = message.text,
-                style = Typography.bodyLarge.copy(
-                    color = if (isUser) Color.White else AppleTextPrimary,
-                    fontSize = 17.sp,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Normal
                 ),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                modifier = Modifier.padding(horizontal = SahaaySpacing.lg, vertical = SahaaySpacing.md)
             )
         }
 
         if (isUser) {
-            Spacer(modifier = Modifier.width(8.dp))
-            // User avatar
+            Spacer(modifier = Modifier.width(SahaaySpacing.sm))
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(AppleBlueLight, shape = RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(SahaayCorners.small)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "👤",
-                    fontSize = 18.sp
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "User",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }

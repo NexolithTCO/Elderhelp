@@ -3,35 +3,22 @@ package com.example.elderhelpprototypev01.ui.voice
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.model.AssistantResponse
 import com.example.elderhelpprototypev01.ui.theme.*
 
-/**
- * ResponseCard
- *
- * Displays the latest Sahaay response in a structured card:
- * - Main response text
- * - Intent badge
- * - "Next step" section
- * - "💡 Helpful tip" section
- * - 🔊 Play / 🔄 Retry buttons
- * - TTS speed control
- */
 @Composable
 fun ResponseCard(
     response: AssistantResponse,
@@ -47,14 +34,14 @@ fun ResponseCard(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        shadowElevation = 6.dp,
-        border = BorderStroke(1.dp, AppleBorderSubtle)
+        shape = RoundedCornerShape(SahaayCorners.large),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = SahaayElevation.medium,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(SahaaySpacing.xl)) {
 
-            // ---- Header: Sahaay bot indicator ----
+            // Header: Sahaay Assistant Indicator
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -62,20 +49,24 @@ fun ResponseCard(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(AppleBlueLight),
+                        .clip(RoundedCornerShape(SahaayCorners.small))
+                        .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🤖", fontSize = 20.sp)
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = "Sahaay Assistant",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(SahaaySpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Sahaay",
-                        style = Typography.titleMedium.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = AppleTextPrimary,
-                            fontSize = 18.sp
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     if (response.intent.isNotBlank() && response.intent != "GENERAL" &&
@@ -85,103 +76,107 @@ fun ResponseCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.md))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
-            // ---- Main Response Text ----
+            // Main Response Text
             Text(
                 text = response.response,
-                style = Typography.bodyLarge.copy(
-                    color = AppleTextPrimary,
-                    fontSize = 18.sp,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Normal
                 )
             )
 
-            // ---- Clarifying Question ----
+            // Clarifying Question Section
             if (response.needsClarification && response.clarifyingQuestion != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
                 Surface(
-                    color = Color(0xFFFFF9E6),
-                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = RoundedCornerShape(SahaayCorners.small),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(SahaaySpacing.md),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text("❓", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(SahaaySpacing.sm))
                         Text(
                             text = response.clarifyingQuestion,
-                            style = Typography.bodyLarge.copy(
-                                color = AppleTextPrimary,
-                                fontSize = 17.sp
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
                     }
                 }
             }
 
-            // ---- Suggested Next Step ----
+            // Suggested Next Step Section
             if (!response.needsClarification && response.suggestedNextStep != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
                 Surface(
-                    color = AppleBlueLight,
-                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(SahaayCorners.small),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.md)) {
                         Text(
                             text = "Next step",
-                            style = Typography.labelMedium.copy(
-                                color = AppleBlue,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
                             )
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.xs))
                         Text(
                             text = response.suggestedNextStep,
-                            style = Typography.bodyLarge.copy(
-                                color = AppleTextPrimary,
-                                fontSize = 17.sp
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         )
                     }
                 }
             }
 
-            // ---- Helpful Tip ----
+            // Helpful Tip Section
             if (response.helpfulTip != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
                 Surface(
-                    color = Color(0xFFEAF9EC),
-                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    shape = RoundedCornerShape(SahaayCorners.small),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(SahaaySpacing.md),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text("💡", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Lightbulb,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(SahaaySpacing.sm))
                         Column {
                             Text(
                                 text = "Helpful tip",
-                                style = Typography.labelMedium.copy(
-                                    color = BillsGreenIcon,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                    fontWeight = FontWeight.Bold
                                 )
                             )
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = response.helpfulTip,
-                                style = Typography.bodyMedium.copy(
-                                    color = AppleTextPrimary,
-                                    fontSize = 16.sp
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             )
                         }
@@ -189,80 +184,77 @@ fun ResponseCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.lg))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
-            // ---- Action Buttons Row ----
+            // Action Control Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm)
             ) {
-                // Play/Stop TTS
                 if (ttsEnabled) {
                     Button(
                         onClick = if (isSpeaking) onStopClick else onPlayClick,
-                        modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.height(SahaayTouchTarget.minimum),
+                        shape = RoundedCornerShape(SahaayCorners.small),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSpeaking) Color(0xFFFF3B30) else AppleBlue
+                            containerColor = if (isSpeaking) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Icon(
                             imageVector = if (isSpeaking) Icons.Default.Stop else Icons.Default.VolumeUp,
-                            contentDescription = if (isSpeaking) "Stop" else "Play",
+                            contentDescription = if (isSpeaking) "Stop" else "Listen",
                             modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
+                        Spacer(modifier = Modifier.width(SahaaySpacing.xs))
                         Text(
-                            text = if (isSpeaking) "Stop" else "Play",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
+                            text = if (isSpeaking) "Stop" else "Listen",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
 
-                // Retry
                 OutlinedButton(
                     onClick = onRetryClick,
-                    modifier = Modifier.height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.5.dp, AppleBorderSubtle)
+                    modifier = Modifier.height(SahaayTouchTarget.minimum),
+                    shape = RoundedCornerShape(SahaayCorners.small),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
                         contentDescription = "Retry",
                         modifier = Modifier.size(18.dp),
-                        tint = AppleTextSecondary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(SahaaySpacing.xs))
                     Text(
                         text = "Retry",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AppleTextSecondary
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
                 }
 
-                // TTS Toggle
                 IconButton(
                     onClick = onToggleTts,
                     modifier = Modifier
-                        .height(48.dp)
-                        .width(48.dp)
+                        .height(SahaayTouchTarget.minimum)
+                        .width(SahaayTouchTarget.minimum)
                 ) {
                     Icon(
                         imageVector = if (ttsEnabled) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
                         contentDescription = "Toggle voice",
-                        tint = if (ttsEnabled) AppleBlue else AppleTextMuted,
+                        tint = if (ttsEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                         modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            // ---- Speech Speed Slider (shown when TTS enabled) ----
+            // Speech Speed Slider
             if (ttsEnabled) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -270,7 +262,7 @@ fun ResponseCard(
                     Icon(
                         imageVector = Icons.Default.SlowMotionVideo,
                         contentDescription = "Speed",
-                        tint = AppleTextMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
                     )
                     Slider(
@@ -279,18 +271,17 @@ fun ResponseCard(
                         valueRange = 0.5f..1.5f,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = SahaaySpacing.sm),
                         colors = SliderDefaults.colors(
-                            thumbColor = AppleBlue,
-                            activeTrackColor = AppleBlue,
-                            inactiveTrackColor = AppleBorderSubtle
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                         )
                     )
                     Text(
                         text = "%.1fx".format(speechRate),
-                        style = Typography.labelMedium.copy(
-                            color = AppleTextMuted,
-                            fontSize = 12.sp
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         modifier = Modifier.width(36.dp)
                     )
@@ -303,27 +294,26 @@ fun ResponseCard(
 @Composable
 private fun IntentBadge(intent: String) {
     val (label, color) = when (intent) {
-        "BOOK_APPOINTMENT" -> "🏥 Appointment" to Color(0xFF007AFF)
-        "PAY_BILL" -> "💳 Bill Payment" to Color(0xFF34C759)
-        "FILL_FORM" -> "📝 Form" to Color(0xFFFF9500)
-        "EXPLAIN_TERM" -> "💡 Explanation" to Color(0xFFAF52DE)
-        "EMERGENCY_HELP" -> "🆘 Emergency" to Color(0xFFFF3B30)
-        "ASK_QUESTION" -> "❓ Question" to Color(0xFF5856D6)
+        "BOOK_APPOINTMENT" -> "Appointment" to SahaayDoctorIcon
+        "PAY_BILL" -> "Bill Payment" to SahaayBillsIcon
+        "FILL_FORM" -> "Form Guidance" to SahaayFormsIcon
+        "EXPLAIN_TERM" -> "Explanation" to SahaayHelpIcon
+        "EMERGENCY_HELP" -> "Emergency" to MaterialTheme.colorScheme.error
+        "ASK_QUESTION" -> "Question" to SahaayPrimary
         else -> return
     }
 
     Surface(
         color = color.copy(alpha = 0.12f),
-        shape = RoundedCornerShape(6.dp)
+        shape = RoundedCornerShape(SahaayCorners.small)
     ) {
         Text(
             text = label,
-            style = Typography.labelMedium.copy(
+            style = MaterialTheme.typography.labelSmall.copy(
                 color = color,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp
+                fontWeight = FontWeight.Bold
             ),
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+            modifier = Modifier.padding(horizontal = SahaaySpacing.sm, vertical = 3.dp)
         )
     }
 }

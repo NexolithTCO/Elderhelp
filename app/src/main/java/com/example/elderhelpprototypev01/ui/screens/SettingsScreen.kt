@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.ui.localization.Localization
@@ -59,46 +58,44 @@ fun SettingsScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(AppleCanvasBg)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 18.dp)
-                .padding(top = 20.dp, bottom = 32.dp)
+                .padding(horizontal = SahaaySpacing.lg)
+                .padding(top = SahaaySpacing.lg, bottom = SahaaySpacing.xxxl)
         ) {
             // Settings Title Header
             Text(
                 text = strings.settingsTitle,
-                style = Typography.headlineLarge.copy(
-                    fontSize = 32.sp,
+                style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = AppleTextPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
             Text(
                 text = strings.settingsSubtitle,
-                style = Typography.bodyMedium.copy(
-                    fontSize = 15.sp,
-                    color = AppleTextMuted
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
 
-            // Section 1: Accessibility & Assistance
+            // Section 1: Accessibility & Voice
             SettingsSectionTitle(title = "ACCESSIBILITY & VOICE")
 
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, AppleBorderSubtle, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                color = AppleSurfaceWhite,
-                shadowElevation = 2.dp
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(SahaayCorners.medium)),
+                shape = RoundedCornerShape(SahaayCorners.medium),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = SahaayElevation.low
             ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Column(modifier = Modifier.padding(horizontal = SahaaySpacing.lg, vertical = SahaaySpacing.xs)) {
                     SettingsSwitchRow(
                         title = "Large Readability Fonts",
                         subtitle = "Increased font contrast for easy reading",
@@ -109,7 +106,7 @@ fun SettingsScreen(
                             Toast.makeText(context, "Readability updated", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     SettingsSwitchRow(
                         title = "Voice Speech Feedback",
                         subtitle = "Speak aloud button actions & confirmations",
@@ -120,7 +117,7 @@ fun SettingsScreen(
                             Toast.makeText(context, "Voice feedback updated", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     SettingsSwitchRow(
                         title = "Simplified Easy Mode",
                         subtitle = "Hide extra options & enlarge touch icons",
@@ -131,13 +128,13 @@ fun SettingsScreen(
                             Toast.makeText(context, "Simple mode toggled", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     val isAccEnabled = remember { com.example.elderhelpprototypev01.accessibility.SahaayAccessibilityService.isServiceEnabled(context) }
                     SettingsNavigationRow(
                         title = "Sahaay Screen Inspector",
                         value = if (isAccEnabled) "ON • Ready to highlight options" else "OFF • Tap to enable in Settings",
                         icon = Icons.Default.Visibility,
-                        iconTint = if (isAccEnabled) Color(0xFF34C759) else Color(0xFFFF9500),
+                        iconTint = if (isAccEnabled) SahaaySuccess else SahaayWarning,
                         onClick = {
                             try {
                                 val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)
@@ -151,7 +148,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.xxl))
 
             // Section 2: Personal & Emergency Contacts
             SettingsSectionTitle(title = "PERSONAL & EMERGENCY")
@@ -159,27 +156,27 @@ fun SettingsScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, AppleBorderSubtle, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                color = AppleSurfaceWhite,
-                shadowElevation = 2.dp
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(SahaayCorners.medium)),
+                shape = RoundedCornerShape(SahaayCorners.medium),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = SahaayElevation.low
             ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Column(modifier = Modifier.padding(horizontal = SahaaySpacing.lg, vertical = SahaaySpacing.xs)) {
                     SettingsNavigationRow(
                         title = "Emergency Contact",
                         value = "Rahul • +91 98765 43210",
                         icon = Icons.Default.ContactPhone,
-                        iconTint = Color(0xFFFF3B30),
+                        iconTint = MaterialTheme.colorScheme.error,
                         onClick = {
                             Toast.makeText(context, "Emergency Contact clicked", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     SettingsNavigationRow(
                         title = strings.prefLanguageTitle,
                         value = currentLanguage,
                         icon = Icons.Default.Language,
-                        iconTint = AppleBlue,
+                        iconTint = MaterialTheme.colorScheme.primary,
                         onClick = {
                             showLanguageDialog = true
                         }
@@ -187,7 +184,7 @@ fun SettingsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.xxl))
 
             // Section 3: App Information & Support
             SettingsSectionTitle(title = "SUPPORT & ABOUT")
@@ -195,29 +192,29 @@ fun SettingsScreen(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, AppleBorderSubtle, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                color = AppleSurfaceWhite,
-                shadowElevation = 2.dp
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(SahaayCorners.medium)),
+                shape = RoundedCornerShape(SahaayCorners.medium),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = SahaayElevation.low
             ) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                Column(modifier = Modifier.padding(horizontal = SahaaySpacing.lg, vertical = SahaaySpacing.xs)) {
                     SettingsNavigationRow(
-                        title = "How to Use (Tutorial Video)",
+                        title = "How to Use (Guide Video)",
                         value = "Play quick 1-min guide",
                         icon = Icons.AutoMirrored.Filled.Help,
-                        iconTint = Color(0xFFAF52DE),
+                        iconTint = SahaayHelpIcon,
                         onClick = {
-                            Toast.makeText(context, "Tutorial video clicked", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Tutorial guide clicked", Toast.LENGTH_SHORT).show()
                         }
                     )
-                    HorizontalDivider(color = AppleBorderSubtle, thickness = 0.5.dp)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                     SettingsNavigationRow(
-                        title = "About ElderhelpV0.1",
-                        value = "V0.1.0 • Hackathon Prototype",
+                        title = "About Sahaay Companion",
+                        value = "v1.0 • Accessibility Companion",
                         icon = Icons.Default.Info,
-                        iconTint = Color(0xFF34C759),
+                        iconTint = SahaaySuccess,
                         onClick = {
-                            Toast.makeText(context, "ElderhelpV0.1 Hackathon Prototype", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Sahaay Accessibility Companion v1.0", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
@@ -231,10 +228,9 @@ fun SettingsScreen(
                 title = {
                     Text(
                         text = "Select Language",
-                        style = Typography.titleLarge.copy(
+                        style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = AppleTextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                 },
@@ -249,7 +245,7 @@ fun SettingsScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp)
+                                    .height(SahaayTouchTarget.minimum)
                                     .selectable(
                                         selected = isSelected,
                                         onClick = {
@@ -268,15 +264,14 @@ fun SettingsScreen(
                                 RadioButton(
                                     selected = isSelected,
                                     onClick = null,
-                                    colors = RadioButtonDefaults.colors(selectedColor = AppleBlue)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(SahaaySpacing.md))
                                 Text(
                                     text = language,
-                                    style = Typography.bodyLarge.copy(
-                                        fontSize = 17.sp,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) AppleBlue else AppleTextPrimary
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                     )
                                 )
                             }
@@ -287,13 +282,15 @@ fun SettingsScreen(
                     TextButton(onClick = { showLanguageDialog = false }) {
                         Text(
                             text = "Cancel",
-                            color = AppleBlue,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
                     }
                 },
-                shape = RoundedCornerShape(24.dp),
-                containerColor = AppleSurfaceWhite
+                shape = RoundedCornerShape(SahaayCorners.large),
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
     }
@@ -303,13 +300,12 @@ fun SettingsScreen(
 fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
-        style = Typography.labelMedium.copy(
-            color = AppleTextMuted,
+        style = MaterialTheme.typography.labelMedium.copy(
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-            fontSize = 12.sp
+            letterSpacing = 1.sp
         ),
-        modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
+        modifier = Modifier.padding(start = SahaaySpacing.xs, bottom = SahaaySpacing.sm)
     )
 }
 
@@ -324,54 +320,52 @@ fun SettingsSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = SahaaySpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(AppleBlueLight)
+                .clip(RoundedCornerShape(SahaayCorners.small))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AppleBlue,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(22.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(SahaaySpacing.md))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = Typography.titleMedium.copy(
-                    fontSize = 16.sp,
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = AppleTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
             Text(
                 text = subtitle,
-                style = Typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    color = AppleTextMuted
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(SahaaySpacing.sm))
 
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = AppleBlue,
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
                 uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = Color(0xFFE5E5EA)
+                uncheckedTrackColor = MaterialTheme.colorScheme.outlineVariant
             )
         )
     }
@@ -389,14 +383,14 @@ fun SettingsNavigationRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 14.dp),
+            .padding(vertical = SahaaySpacing.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(SahaayCorners.small))
                 .background(iconTint.copy(alpha = 0.12f))
         ) {
             Icon(
@@ -407,22 +401,20 @@ fun SettingsNavigationRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(14.dp))
+        Spacer(modifier = Modifier.width(SahaaySpacing.md))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = Typography.titleMedium.copy(
-                    fontSize = 16.sp,
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = AppleTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
             Text(
                 text = value,
-                style = Typography.bodyMedium.copy(
-                    fontSize = 13.sp,
-                    color = AppleTextMuted
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
         }
@@ -430,19 +422,8 @@ fun SettingsNavigationRow(
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = AppleTextMuted,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SettingsScreenPreview() {
-    ElderHelpPrototypeV01Theme {
-        SettingsScreen(
-            currentLanguage = "Hindi (हिंदी)",
-            onLanguageChange = {}
         )
     }
 }

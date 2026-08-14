@@ -1,24 +1,26 @@
 package com.example.elderhelpprototypev01.ui.components
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.ui.localization.Localization
-import com.example.elderhelpprototypev01.ui.theme.*
+import com.example.elderhelpprototypev01.ui.theme.SahaayTouchTarget
 
 data class NavItem(
     val title: String,
@@ -41,46 +43,42 @@ fun BottomNavigationBar(
         NavItem(strings.navSettings, Icons.Default.Settings)
     )
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = AppleSurfaceWhite,
-        shadowElevation = 12.dp,
-        tonalElevation = 4.dp
+    NavigationBar(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(SahaayTouchTarget.preferred + 20.dp),
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 3.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, item ->
-                val isSelected = index == selectedTab
-                val color = if (isSelected) AppleBlue else AppleTextMuted
+        items.forEachIndexed { index, item ->
+            val isSelected = index == selectedTab
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .clickable { onTabSelected(index) }
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                ) {
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = { onTabSelected(index) },
+                icon = {
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.title,
-                        tint = color,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(26.dp)
                     )
-                    Spacer(modifier = Modifier.height(3.dp))
+                },
+                label = {
                     Text(
                         text = item.title,
-                        style = Typography.bodyMedium.copy(
-                            color = color,
-                            fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelMedium.copy(
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     )
-                }
-            }
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
         }
     }
 }

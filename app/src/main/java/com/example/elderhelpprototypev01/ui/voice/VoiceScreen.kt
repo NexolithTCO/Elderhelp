@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,26 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.elderhelpprototypev01.SahaayViewModel
-import com.example.elderhelpprototypev01.model.VoiceInteractionState
 import com.example.elderhelpprototypev01.model.VoiceState
 import com.example.elderhelpprototypev01.ui.components.ClarificationCard
-import com.example.elderhelpprototypev01.ui.components.WakeWordBadge
 import com.example.elderhelpprototypev01.ui.theme.*
 
-/**
- * VoiceScreen
- *
- * The full-page voice assistant screen.
- * Updated for the Voice Interaction Engine to show:
- *  1. [WakeWordBadge]      — pulsing badge while engine monitors for "Hey Sahayak"
- *  2. [VoiceInputPanel]    — mic button + live transcript
- *  3. [ClarificationCard]  — warm amber card when LLM requests a repair clarification
- *  4. [ConversationPanel]  — scrollable chat history
- *  5. [ResponseCard]       — latest full response with TTS controls
- *
- * Engine state machine transitions are observed from [SahaayViewModel.engineState].
- * Navigation events (GO_BACK anchor) are consumed via [SahaayViewModel.navigationEvent].
- */
 @Composable
 fun VoiceScreen(
     viewModel: SahaayViewModel,
@@ -57,7 +43,6 @@ fun VoiceScreen(
 
     val scrollState = rememberScrollState()
 
-    // Microphone permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -69,14 +54,14 @@ fun VoiceScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppleCanvasBg)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
-            .padding(horizontal = 16.dp)
-            .padding(top = 16.dp, bottom = 32.dp),
+            .padding(horizontal = SahaaySpacing.lg)
+            .padding(top = SahaaySpacing.lg, bottom = SahaaySpacing.xxxl),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // ---- Header ----
+        // Header
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -84,84 +69,91 @@ fun VoiceScreen(
         ) {
             Column {
                 Text(
-                    text = "Sahaay",
-                    style = Typography.headlineMedium.copy(
+                    text = "Voice Assistant",
+                    style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = AppleTextPrimary,
-                        fontSize = 28.sp
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 )
                 Text(
-                    text = "Your voice assistant",
-                    style = Typography.bodyMedium.copy(
-                        color = AppleTextMuted,
-                        fontSize = 14.sp
+                    text = "Ask Sahaay anything using your voice",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 )
             }
 
-            // Clear conversation button
             if (conversation.isNotEmpty()) {
                 IconButton(
                     onClick = { viewModel.clearConversation() },
-                    modifier = Modifier.size(44.dp)
+                    modifier = Modifier.size(SahaayTouchTarget.minimum)
                 ) {
                     Icon(
                         imageVector = Icons.Default.DeleteSweep,
                         contentDescription = "Clear conversation",
-                        tint = AppleTextMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(22.dp)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
-        // ---- Permission Banner (shown when not granted) ----
+        // Permission Banner
         if (voiceState is VoiceState.RequestingPermission) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFFFFF3E0)
+                shape = RoundedCornerShape(SahaayCorners.medium),
+                color = MaterialTheme.colorScheme.secondaryContainer
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "🎙️ Microphone permission needed",
-                        style = Typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFE65100),
-                            fontSize = 17.sp
+                Column(modifier = Modifier.padding(SahaaySpacing.lg)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(20.dp)
                         )
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.width(SahaaySpacing.sm))
+                        Text(
+                            text = "Microphone permission needed",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(SahaaySpacing.xs))
                     Text(
                         text = "Sahaay needs to hear your voice to help you. Please allow microphone access.",
-                        style = Typography.bodyMedium.copy(
-                            color = AppleTextSecondary,
-                            fontSize = 15.sp
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(SahaaySpacing.md))
                     Button(
                         onClick = {
                             permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE65100),
-                            contentColor = Color.White
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
                         ),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(SahaayCorners.small),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Allow Microphone Access", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            "Allow Microphone Access",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.xl))
         }
 
-        // ---- Voice Input Panel ----
+        // Voice Input Panel
         VoiceInputPanel(
             voiceState = voiceState,
             transcript = transcript,
@@ -178,8 +170,7 @@ fun VoiceScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // ---- Clarification Card (Conversational Repair) ----
-        // Displayed when the LLM needs one more piece of information.
+        // Clarification Card
         AnimatedVisibility(
             visible = currentResponse?.needsClarification == true,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
@@ -187,7 +178,7 @@ fun VoiceScreen(
         ) {
             currentResponse?.clarifyingQuestion?.let { question ->
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                     ClarificationCard(
                         question = question,
                         onMicClick = {
@@ -203,23 +194,22 @@ fun VoiceScreen(
             }
         }
 
-        // ---- Conversation History ----
+        // Conversation History
         AnimatedVisibility(
             visible = conversation.isNotEmpty(),
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.xxl))
                 Text(
                     text = "Conversation",
-                    style = Typography.labelMedium.copy(
-                        color = AppleTextMuted,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
                         letterSpacing = 1.sp
                     ),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                    modifier = Modifier.padding(start = SahaaySpacing.xs, bottom = SahaaySpacing.xs)
                 )
                 ConversationPanel(
                     messages = conversation,
@@ -230,7 +220,7 @@ fun VoiceScreen(
             }
         }
 
-        // ---- Response Card ----
+        // Response Card
         AnimatedVisibility(
             visible = currentResponse != null && !currentResponse!!.isError
                     && currentResponse?.intent != "LOADING",
@@ -238,11 +228,9 @@ fun VoiceScreen(
             exit = fadeOut()
         ) {
             currentResponse?.let { response ->
-                // Do not show a dedicated ResponseCard for vocal-anchor short-circuits —
-                // they are TTS-only feedback and don't need a full card.
                 if (!response.isVocalAnchor) {
                     Column(modifier = Modifier.fillMaxWidth()) {
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                         ResponseCard(
                             response = response,
                             isSpeaking = isSpeaking,
@@ -260,7 +248,7 @@ fun VoiceScreen(
             }
         }
 
-        // ---- Error Card ----
+        // Error Card
         AnimatedVisibility(
             visible = currentResponse?.isError == true || voiceState is VoiceState.Error,
             enter = fadeIn(),
@@ -270,34 +258,38 @@ fun VoiceScreen(
                 ?: currentResponse?.errorMessage
                 ?: "Something went wrong."
             Column(modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color(0xFFFFF0F0)
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    color = MaterialTheme.colorScheme.errorContainer
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(SahaaySpacing.lg),
                         verticalAlignment = Alignment.Top
                     ) {
-                        Text("⚠️", fontSize = 22.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Error",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(SahaaySpacing.md))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = errorMsg,
-                                style = Typography.bodyLarge.copy(
-                                    color = Color(0xFFCC0000),
-                                    fontSize = 17.sp
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.onErrorContainer
                                 )
                             )
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             OutlinedButton(
                                 onClick = {
                                     viewModel.resetVoiceState()
                                 },
-                                shape = RoundedCornerShape(8.dp)
+                                shape = RoundedCornerShape(SahaayCorners.small)
                             ) {
-                                Text("Try again", fontWeight = FontWeight.Bold)
+                                Text("Try again", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                             }
                         }
                     }
@@ -305,34 +297,33 @@ fun VoiceScreen(
             }
         }
 
-        // ---- Loading Card ----
+        // Loading Card
         AnimatedVisibility(
             visible = voiceState is VoiceState.Processing,
             enter = fadeIn(),
             exit = fadeOut()
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = AppleBlueLight
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(SahaaySpacing.lg),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
-                            color = AppleBlue,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.5.dp
                         )
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(SahaaySpacing.md))
                         Text(
                             text = "Sahaay is thinking...",
-                            style = Typography.bodyLarge.copy(
-                                color = AppleBlue,
-                                fontSize = 17.sp,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 fontWeight = FontWeight.Medium
                             )
                         )

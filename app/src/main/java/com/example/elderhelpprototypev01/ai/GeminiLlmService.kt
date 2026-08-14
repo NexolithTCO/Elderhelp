@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
  * GeminiLlmService
  *
  * Implements [LlmService] using Gemini REST API with multi-endpoint fallback
- * (gemini-1.5-flash, gemini-2.0-flash, gemini-1.5-flash-latest, gemini-pro).
+ * and elder-focused conversation intelligence.
  */
 class GeminiLlmService : LlmService {
 
@@ -82,15 +82,14 @@ class GeminiLlmService : LlmService {
             }
         }
 
-        // Friendly fallback response if all API endpoints fail or rate-limit
         return@withContext AssistantResponse(
             intent = "GENERAL",
             goal = transcript,
-            response = "I am Sahaay, your voice assistant. I am here to help you navigate apps, book appointments, and understand your screen.",
+            response = "I am Sahaay, your voice assistant. I am here to help you navigate digital services and understand your screen.",
             needsClarification = false,
             clarifyingQuestion = null,
             suggestedNextStep = "Tell me what you would like to do.",
-            helpfulTip = "You can tap Read Screen or Voice at any time."
+            helpfulTip = "You can tap Voice or Read Screen at any time."
         )
     }
 
@@ -126,8 +125,8 @@ class GeminiLlmService : LlmService {
             ),
             "contents" to historyParts,
             "generationConfig" to mapOf(
-                "temperature" to 0.7,
-                "maxOutputTokens" to 400,
+                "temperature" to 0.5,
+                "maxOutputTokens" to 450,
                 "responseMimeType" to "application/json"
             )
         )
@@ -137,29 +136,46 @@ class GeminiLlmService : LlmService {
 
     private fun buildSystemPrompt(userLanguage: String): String {
         val languageInstruction = when {
-            userLanguage.contains("Hindi") -> "Respond in natural Hinglish or simple Hindi."
-            userLanguage.contains("Marathi") -> "Respond in simple Marathi."
-            userLanguage.contains("Tamil") -> "Respond in simple Tamil."
-            userLanguage.contains("Telugu") -> "Respond in simple Telugu."
-            userLanguage.contains("Bengali") -> "Respond in simple Bengali."
-            else -> "Respond in simple, clear English."
+            userLanguage.contains("Hindi") -> "Respond in simple, warm Hindi (हिंदी) or natural Hinglish."
+            userLanguage.contains("Marathi") -> "Respond in simple, warm Marathi (मराठी)."
+            userLanguage.contains("Tamil") -> "Respond in simple, warm Tamil (தமிழ்)."
+            userLanguage.contains("Telugu") -> "Respond in simple, warm Telugu (తెలుగు)."
+            userLanguage.contains("Bengali") -> "Respond in simple, warm Bengali (বাংলা)."
+            else -> "Respond in simple, warm, clear English."
         }
 
         return """
-You are Sahaay, a calm and helpful assistant for elderly users in India.
-Output plain text sentences only. No markdown formatting.
+You are Sahaay, an intelligent, patient digital companion for elderly users in India.
+Your goal is to explain digital actions in 1-2 simple, reassuring sentences.
 
 $languageInstruction
 
+INTENT CLASSIFICATION:
+Classify intent as one of:
+- "BOOK_APPOINTMENT"
+- "PAY_BILL"
+- "FILL_FORM"
+- "EXPLAIN_TERM"
+- "EMERGENCY_HELP"
+- "ASK_QUESTION"
+- "GENERAL"
+
+RULES:
+1. No robotic preamble (never say "I am an AI" or "As an AI model").
+2. No markdown formatting, asterisks, or underscores.
+3. Keep explanation to 1-2 simple sentences.
+4. Give a practical suggested_next_step.
+5. Provide a helpful safety or accessibility tip in helpful_tip.
+
 Respond ONLY with this exact JSON structure:
 {
-  "intent": "GENERAL",
-  "goal": "User's request",
-  "response": "2 simple sentences in plain text.",
+  "intent": "BOOK_APPOINTMENT",
+  "goal": "User's intent",
+  "response": "Direct simple response.",
   "needs_clarification": false,
   "clarifying_question": null,
-  "suggested_next_step": "Next simple step.",
-  "helpful_tip": "A brief helpful tip."
+  "suggested_next_step": "Single clear next action.",
+  "helpful_tip": "Useful tip for the user."
 }
         """.trimIndent()
     }

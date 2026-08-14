@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -20,13 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.ui.localization.Localization
-import com.example.elderhelpprototypev01.ui.theme.*
+import com.example.elderhelpprototypev01.ui.theme.SahaayCorners
+import com.example.elderhelpprototypev01.ui.theme.SahaayElevation
+import com.example.elderhelpprototypev01.ui.theme.SahaaySpacing
+import com.example.elderhelpprototypev01.ui.theme.SahaayTouchTarget
 
 @Composable
 fun MicrophoneButton(
@@ -39,79 +42,69 @@ fun MicrophoneButton(
     val isPressed by interactionSource.collectIsPressedAsState()
     val strings = Localization.getStrings(currentLanguage)
 
-    // Smooth pulse animation
+    // Controlled pulse animation
     val infiniteTransition = rememberInfiniteTransition(label = "pulseRing")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = if (isListening) 1.0f else 0.97f,
-        targetValue = if (isListening) 1.22f else 1.06f,
+        initialValue = if (isListening) 1.0f else 0.98f,
+        targetValue = if (isListening) 1.15f else 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(if (isListening) 750 else 1800, easing = FastOutSlowInEasing),
+            animation = tween(if (isListening) 800 else 1600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseScale"
     )
 
     val buttonScale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else if (isListening) 1.05f else 1.0f,
+        targetValue = if (isPressed) 0.93f else 1.0f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "buttonScale"
     )
 
-    val gradientColors = if (isListening) {
-        listOf(MicAppleListeningStart, MicAppleListeningEnd)
-    } else {
-        listOf(MicAppleGradientStart, MicAppleGradientEnd)
-    }
-
-    val glowColor by animateColorAsState(
-        targetValue = if (isListening) MicAppleListeningStart.copy(alpha = 0.25f) else AppleBlueGlow,
-        animationSpec = tween(400),
-        label = "glowColor"
+    val buttonColor by animateColorAsState(
+        targetValue = if (isListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(300),
+        label = "buttonColor"
     )
 
-    // Featured Banner Container
+    val auraColor by animateColorAsState(
+        targetValue = if (isListening) MaterialTheme.colorScheme.error.copy(alpha = 0.18f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        animationSpec = tween(300),
+        label = "auraColor"
+    )
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp)),
-        shape = RoundedCornerShape(28.dp),
-        color = AppleSurfaceWhite,
-        shadowElevation = 4.dp,
-        tonalElevation = 2.dp
+            .clip(RoundedCornerShape(SahaayCorners.large)),
+        shape = RoundedCornerShape(SahaayCorners.large),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        shadowElevation = SahaayElevation.low
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp, horizontal = 20.dp),
+                .padding(vertical = SahaaySpacing.xl, horizontal = SahaaySpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Hero Voice Circular Trigger (140dp)
+            // Voice Trigger Button Area — 148dp container guarantees zero clipping when pulse reaches 138dp
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.size(190.dp)
+                modifier = Modifier.size(148.dp)
             ) {
-                // Pulsing Aura Ring
+                // Pulsing Aura Ring (120dp * 1.15f = max 138dp)
                 Box(
                     modifier = Modifier
-                        .size(180.dp)
+                        .size(120.dp)
                         .scale(pulseScale)
                         .clip(CircleShape)
-                        .background(glowColor)
+                        .background(auraColor)
                 )
 
-                // Secondary Accent Layer
-                Box(
-                    modifier = Modifier
-                        .size(154.dp)
-                        .clip(CircleShape)
-                        .background(glowColor.copy(alpha = 0.5f))
-                )
-
-                // Core Microphone Surface Circle (132dp)
+                // Core Microphone Surface Circle (80dp)
                 Surface(
                     modifier = Modifier
-                        .size(132.dp)
+                        .size(SahaayTouchTarget.hero)
                         .scale(buttonScale)
                         .clip(CircleShape)
                         .clickable(
@@ -120,45 +113,42 @@ fun MicrophoneButton(
                             onClick = onClick
                         ),
                     shape = CircleShape,
-                    shadowElevation = 8.dp,
-                    tonalElevation = 6.dp
+                    color = buttonColor,
+                    shadowElevation = SahaayElevation.medium
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Brush.verticalGradient(gradientColors))
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Icon(
                             imageVector = if (isListening) Icons.Default.GraphicEq else Icons.Default.Mic,
                             contentDescription = "Microphone Trigger",
                             tint = Color.White,
-                            modifier = Modifier.size(58.dp)
+                            modifier = Modifier.size(38.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(SahaaySpacing.xs))
 
-            // Main Action Title: "Tap to speak" / localized
+            // Text Label
             Text(
                 text = if (isListening) strings.tapToStop else strings.tapToSpeak,
-                style = Typography.labelLarge.copy(
-                    fontSize = 24.sp,
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = AppleTextPrimary
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
                 )
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = if (isListening) strings.listeningText else strings.micSubtitle,
-                style = Typography.bodyMedium.copy(
-                    color = AppleTextMuted,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Normal
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             )
         }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,11 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.elderhelpprototypev01.ui.theme.*
+import com.example.elderhelpprototypev01.ui.theme.SahaayCorners
+import com.example.elderhelpprototypev01.ui.theme.SahaayElevation
+import com.example.elderhelpprototypev01.ui.theme.SahaaySpacing
 
 @Composable
 fun StatusCard(
@@ -29,8 +30,8 @@ fun StatusCard(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "statusDotPulse")
     val dotScale by infiniteTransition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.15f,
+        initialValue = 0.9f,
+        targetValue = 1.12f,
         animationSpec = infiniteRepeatable(
             animation = tween(1000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -39,25 +40,27 @@ fun StatusCard(
     )
 
     val indicatorColor by animateColorAsState(
-        targetValue = if (isListening) MicAppleListeningStart else Color(0xFF34C759),
+        targetValue = if (isListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
         animationSpec = tween(300),
         label = "indicatorColor"
     )
 
     Surface(
         modifier = modifier
-            .border(1.dp, AppleBorderSubtle, RoundedCornerShape(30.dp)),
-        shape = RoundedCornerShape(30.dp),
-        color = AppleSurfaceWhite,
-        shadowElevation = 2.dp,
-        tonalElevation = 1.dp
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant,
+                RoundedCornerShape(SahaayCorners.full)
+            ),
+        shape = RoundedCornerShape(SahaayCorners.full),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = SahaayElevation.low
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = SahaaySpacing.lg, vertical = SahaaySpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            // Pulse Dot Container
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(16.dp)
@@ -77,14 +80,13 @@ fun StatusCard(
                 )
             }
 
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(SahaaySpacing.sm))
 
             Text(
                 text = if (isListening) "Listening now..." else statusText,
-                style = Typography.bodyLarge.copy(
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = AppleTextPrimary
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
         }

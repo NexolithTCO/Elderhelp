@@ -12,25 +12,36 @@ import java.util.Locale
  * TextToSpeechManager
  *
  * Wraps Android [TextToSpeech] with:
+ * - Human-like speech sanitization (strips `_`, `__`, `*`, `#`, markdown, JSON keys)
  * - Elderly-friendly default speed (0.85f — slightly slower than normal)
  * - Language-aware locale
  * - Speaking state flow for UI reactivity
- * - Auto-skip for very long texts (user must tap Play)
  * - Clean lifecycle management
- *
- * Call [initialize] before using and [shutdown] when done.
  */
 class TextToSpeechManager(private val context: Context) {
 
     companion object {
-        /** Comfortable speech rate for elderly users (normal = 1.0f) */
         const val DEFAULT_SPEECH_RATE = 0.85f
-        /**
-         * Skip auto-play if text is longer than this many characters.
-         * Raised from 250 → 400 to accommodate the engine's 2-3 sentence
-         * TTS-optimized outputs while still gating very long LLM explanations.
-         */
         const val AUTO_PLAY_MAX_CHARS = 400
+
+        /**
+         * Cleans raw AI response text into natural, spoken human prose.
+         * Removes underscores, markdown formatting, JSON tokens, and special symbols
+         * so the Android TTS engine never pronounces "underscore underscore" or formatting characters.
+         */
+        fun sanitizeForSpeech(text: String): String {
+            return text
+                .replace(Regex("_+"), " ")                               // Replace all _ or __ with space
+                .replace(Regex("\\*{1,2}"), "")                          // Replace * and **
+                .replace(Regex("`{1,3}"), "")                            // Replace backticks
+                .replace(Regex("^#{1,6}\\s*", RegexOption.MULTILINE), "")// Remove markdown headers
+                .replace(Regex("^[-*]\\s+", RegexOption.MULTILINE), "")  // Remove bullets
+                .replace(Regex("^>\\s+", RegexOption.MULTILINE), "")     // Remove blockquotes
+                .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")         // Simplify markdown links
+                .replace(Regex("[{}\\[\\]\\\"\\']"), "")                 // Remove brackets and quotes
+                .replace(Regex("\\s{2,}"), " ")                          // Double spaces -> single space
+                .trim()
+        }
     }
 
     private var tts: TextToSpeech? = null
@@ -41,7 +52,6 @@ class TextToSpeechManager(private val context: Context) {
 
     private var speechRate = DEFAULT_SPEECH_RATE
 
-    /** Initialize the TTS engine. Callback fires when ready. */
     fun initialize(language: String = "English (India)", onReady: () -> Unit = {}) {
         tts = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -66,18 +76,20 @@ class TextToSpeechManager(private val context: Context) {
     }
 
     /**
-     * Speak the given text aloud.
-     * @param text    The text to speak.
-     * @param force   If true, speak even if text is long (user tapped Play).
-     * @return true if speech was started, false if skipped or not ready.
+     * Speak the given text aloud after sanitizing it into clean human prose.
+     * @param text  The text to speak.
+     * @param force If true, speak even if text is long.
+     * @return true if speech was started.
      */
     fun speak(text: String, force: Boolean = false): Boolean {
         if (!isReady || text.isBlank()) return false
-        if (!force && text.length > AUTO_PLAY_MAX_CHARS) return false
+        val sanitized = sanitizeForSpeech(text)
+        if (sanitized.isBlank()) return false
+        if (!force && sanitized.length > AUTO_PLAY_MAX_CHARS) return false
 
         stop()
         tts?.speak(
-            text,
+            sanitized,
             TextToSpeech.QUEUE_FLUSH,
             null,
             "sahaay_response_${System.currentTimeMillis()}"
@@ -85,36 +97,15 @@ class TextToSpeechManager(private val context: Context) {
         return true
     }
 
-    /**
-     * Speak the given text after stripping any residual markdown characters.
-     *
-     * The Voice Interaction Engine instructs Gemini to output clean text,
-     * but this serves as a safety net in case the model adds formatting.
-     * Strips: `*`, `**`, `#`, `- `, `> `.
-     *
-     * @param text  The response text (potentially with stray markdown).
-     * @param force If true, speak even if text is long.
-     * @return true if speech was started.
-     */
     fun speakRaw(text: String, force: Boolean = false): Boolean {
-        val cleaned = text
-            .replace(Regex("\\*{1,2}"), "")           // * and **
-            .replace(Regex("^#{1,6}\\s*", RegexOption.MULTILINE), "") // headings
-            .replace(Regex("^[-*]\\s+", RegexOption.MULTILINE), "")   // bullets
-            .replace(Regex("^>\\s+", RegexOption.MULTILINE), "")      // blockquotes
-            .replace(Regex("\\[([^]]+)]\\([^)]+\\)"), "$1")          // [text](url)
-            .replace(Regex("\\s{2,}"), " ")                           // extra spaces
-            .trim()
-        return speak(cleaned, force)
+        return speak(text, force)
     }
 
-    /** Stop any ongoing speech immediately. */
     fun stop() {
         tts?.stop()
         _isSpeaking.value = false
     }
 
-    /** Set speech rate. Normal = 1.0f, elderly-comfortable = 0.85f */
     fun setSpeechRate(rate: Float) {
         speechRate = rate.coerceIn(0.5f, 1.5f)
         tts?.setSpeechRate(speechRate)
@@ -122,7 +113,6 @@ class TextToSpeechManager(private val context: Context) {
 
     fun getSpeechRate(): Float = speechRate
 
-    /** Apply language-appropriate locale to TTS engine. */
     fun applyLanguage(language: String) {
         if (!isReady) return
         val locale = languageToLocale(language)
@@ -132,12 +122,10 @@ class TextToSpeechManager(private val context: Context) {
             result == TextToSpeech.LANG_COUNTRY_VAR_AVAILABLE) {
             tts?.language = locale
         } else {
-            // Fall back to English if language not available
             tts?.language = Locale("en", "IN")
         }
     }
 
-    /** Release TTS resources. Call in onDestroy. */
     fun shutdown() {
         tts?.stop()
         tts?.shutdown()

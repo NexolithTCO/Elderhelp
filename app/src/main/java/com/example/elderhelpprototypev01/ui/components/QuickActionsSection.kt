@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -13,8 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.ui.localization.Localization
 import com.example.elderhelpprototypev01.ui.theme.*
 
@@ -43,8 +42,8 @@ fun QuickActionsSection(
             subtitle = strings.doctorSubtitle,
             buttonText = strings.doctorBtn,
             icon = Icons.Default.MedicalServices,
-            iconTint = DoctorBlueIcon,
-            iconBgColor = DoctorBlueBg
+            iconTint = SahaayDoctorIcon,
+            iconBgColor = SahaayDoctorBg
         ),
         QuickActionItem(
             id = "bills",
@@ -52,8 +51,8 @@ fun QuickActionsSection(
             subtitle = strings.billsSubtitle,
             buttonText = strings.billsBtn,
             icon = Icons.AutoMirrored.Filled.ReceiptLong,
-            iconTint = BillsGreenIcon,
-            iconBgColor = BillsGreenBg
+            iconTint = SahaayBillsIcon,
+            iconBgColor = SahaayBillsBg
         ),
         QuickActionItem(
             id = "forms",
@@ -61,8 +60,8 @@ fun QuickActionsSection(
             subtitle = strings.formsSubtitle,
             buttonText = strings.formsBtn,
             icon = Icons.Default.Description,
-            iconTint = FormsOrangeIcon,
-            iconBgColor = FormsOrangeBg
+            iconTint = SahaayFormsIcon,
+            iconBgColor = SahaayFormsBg
         ),
         QuickActionItem(
             id = "help",
@@ -70,8 +69,8 @@ fun QuickActionsSection(
             subtitle = strings.helpSubtitle,
             buttonText = strings.helpBtn,
             icon = Icons.AutoMirrored.Filled.HelpOutline,
-            iconTint = HelpPurpleIcon,
-            iconBgColor = HelpPurpleBg
+            iconTint = SahaayHelpIcon,
+            iconBgColor = SahaayHelpBg
         )
     )
 
@@ -86,32 +85,25 @@ fun QuickActionsSection(
         ) {
             Text(
                 text = strings.exploreTasks,
-                style = Typography.titleLarge.copy(
-                    fontSize = 20.sp,
+                style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = AppleTextPrimary
-                )
-            )
-            Text(
-                text = strings.seeAll,
-                style = Typography.bodyMedium.copy(
-                    fontSize = 14.sp,
-                    color = AppleBlue,
-                    fontWeight = FontWeight.SemiBold
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
         // 2x2 Grid of Action Cards
         Column(
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(SahaaySpacing.md)
         ) {
             actions.chunked(2).forEach { rowItems ->
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(IntrinsicSize.Max),
+                    horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.md)
                 ) {
                     rowItems.forEach { item ->
                         QuickActionCard(

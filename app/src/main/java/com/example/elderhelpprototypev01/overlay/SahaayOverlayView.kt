@@ -16,23 +16,16 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.elderhelpprototypev01.MainActivity
 import com.example.elderhelpprototypev01.R
+import com.example.elderhelpprototypev01.highlight.HighlightManager
 
 /**
- * SahaayOverlayView – Professional Floating Assistant UI.
- *
- * Aesthetics:
- *   - Sleek glassmorphic dark slate panel backdrop when expanded
- *   - Staggered spring animations for radial sub-actions
- *   - High contrast dark pill badges with gold accent borders
- *   - Accent color rings for each action (Voice, Read Screen, Explain, SOS)
- *   - Responsive micro-touch press animations
+ * SahaayOverlayView – Professional System Assistant Overlay UI with Highlight Off button.
  */
 class SahaayOverlayView(
     context: Context,
@@ -57,9 +50,9 @@ class SahaayOverlayView(
     private val DRAG_THRESHOLD = 12 // pixels
 
     companion object {
-        private const val ANIM_DURATION = 280L
-        private const val BUTTON_SIZE_DP = 62
-        private const val SUB_SIZE_DP = 48
+        private const val ANIM_DURATION = 240L
+        private const val BUTTON_SIZE_DP = 64
+        private const val SUB_SIZE_DP = 46
         const val TOTAL_VIEW_SIZE_DP = 240
     }
 
@@ -74,7 +67,7 @@ class SahaayOverlayView(
         // ---- Ambient Outer Pulse Ring ----
         pulseRing = View(context).apply {
             background = createCircleGradient(
-                intArrayOf(Color.parseColor("#402563EB"), Color.parseColor("#002563EB"))
+                intArrayOf(Color.parseColor("#301B6B7D"), Color.parseColor("#001B6B7D"))
             )
             visibility = View.VISIBLE
         }
@@ -86,7 +79,7 @@ class SahaayOverlayView(
         addView(pulseRing, ringParams)
         startPulseRingAnimation()
 
-        // ---- Main Floating Button ----
+        // ---- Main Floating Button with Sahaay Logo ----
         mainButton = buildMainButton(context, btnPx)
         val mainParams = LayoutParams(btnPx, btnPx).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
@@ -96,8 +89,8 @@ class SahaayOverlayView(
         // ---- Expanded Action Container ----
         actionContainer = FrameLayout(context).apply {
             alpha = 0f
-            scaleX = 0.2f
-            scaleY = 0.2f
+            scaleX = 0.3f
+            scaleY = 0.3f
             visibility = View.GONE
         }
         val containerParams = LayoutParams(totalPx, totalPx).apply {
@@ -105,14 +98,14 @@ class SahaayOverlayView(
         }
         addView(actionContainer, containerParams)
 
-        // ---- Glassmorphic Dark Menu Panel Backdrop ----
+        // ---- Dark Slate Menu Panel Backdrop ----
         val backdropSizePx = (210 * density).toInt()
         menuBackdrop = View(context).apply {
-            elevation = 12f * density
+            elevation = 10f * density
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#F20F172A")) // Dark Slate 95% opacity
-                setStroke((1.5f * density).toInt(), Color.parseColor("#4094A3B8"))
+                setColor(Color.parseColor("#F51E293B")) // Professional Dark Slate
+                setStroke((1.5f * density).toInt(), Color.parseColor("#3094A3B8"))
             }
         }
         val backdropParams = LayoutParams(backdropSizePx, backdropSizePx).apply {
@@ -126,29 +119,35 @@ class SahaayOverlayView(
 
         data class SubAction(
             val label: String,
-            val emoji: String,
+            val symbol: String,
             val accentColor: String,
             val angleRad: Double,
             val action: () -> Unit
         )
 
         val subActions = listOf(
-            SubAction("Voice", "🎙️", "#3B82F6", Math.toRadians(0.0)) { // Right
+            SubAction("Voice", "MIC", "#1B6B7D", Math.toRadians(0.0)) {
                 val intent = SahaayOverlayService.voiceHighlightIntent(context)
                 context.startService(intent)
                 collapseMenu()
             },
-            SubAction("Read Screen", "👁️", "#10B981", Math.toRadians(270.0)) { // Top
+            SubAction("Read", "READ", "#2E7D32", Math.toRadians(270.0)) {
                 val intent = SahaayOverlayService.analyzeScreenIntent(context, "Read this screen")
                 context.startService(intent)
                 collapseMenu()
             },
-            SubAction("Explain", "💡", "#F59E0B", Math.toRadians(180.0)) { // Left
+            SubAction("Explain", "INFO", "#C4820E", Math.toRadians(180.0)) {
                 val intent = SahaayOverlayService.analyzeScreenIntent(context, "Explain this screen")
                 context.startService(intent)
                 collapseMenu()
             },
-            SubAction("SOS", "🆘", "#EF4444", Math.toRadians(225.0)) { // Bottom-Left
+            SubAction("Clear Box", "OFF", "#64748B", Math.toRadians(125.0)) {
+                HighlightManager.clearHighlight(context)
+                val intent = SahaayOverlayService.clearHighlightIntent(context)
+                context.startService(intent)
+                collapseMenu()
+            },
+            SubAction("SOS", "SOS", "#BA1A1A", Math.toRadians(225.0)) {
                 val intent = Intent(context, MainActivity::class.java).apply {
                     putExtra(MainActivity.EXTRA_TRIGGER_SOS, true)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -159,7 +158,7 @@ class SahaayOverlayView(
         )
 
         for (sub in subActions) {
-            val subView = buildSubButton(context, sub.emoji, sub.label, sub.accentColor, subPx, sub.action)
+            val subView = buildSubButton(context, sub.symbol, sub.label, sub.accentColor, subPx, sub.action)
             val x = center + (radius * Math.cos(sub.angleRad)).toInt() - subPx / 2
             val y = center + (radius * Math.sin(sub.angleRad)).toInt() - subPx / 2
             val subParams = LayoutParams(subPx + 40, subPx + 36).apply {
@@ -210,42 +209,32 @@ class SahaayOverlayView(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Professional Custom UI Builders
-    // ------------------------------------------------------------------
-
     private fun buildMainButton(context: Context, sizePx: Int): FrameLayout {
         val density = context.resources.displayMetrics.density
 
         val frame = FrameLayout(context).apply {
-            elevation = 18f * density
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.parseColor("#2563EB"),
-                    Color.parseColor("#1D4ED8"),
-                    Color.parseColor("#1E3A8A")
-                )
-            ).apply {
+            elevation = 16f * density
+            background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setStroke((2.5f * density).toInt(), Color.parseColor("#A0FFFFFF"))
+                setColor(Color.parseColor("#1B6B7D")) // Sahaay Primary Teal
+                setStroke((2.5f * density).toInt(), Color.parseColor("#C4820E")) // Sahaay Accent Amber
             }
         }
 
-        val icon = ImageView(context).apply {
-            setImageResource(R.drawable.ic_overlay_mic)
-            setColorFilter(Color.WHITE)
+        val logoView = ImageView(context).apply {
+            setImageResource(R.drawable.ic_sahaay_logo)
+            scaleType = ImageView.ScaleType.FIT_CENTER
         }
-        val iconPad = (16 * density).toInt()
-        icon.setPadding(iconPad, iconPad, iconPad, iconPad)
-        frame.addView(icon, LayoutParams(sizePx, sizePx))
+        val iconPad = (4 * density).toInt()
+        logoView.setPadding(iconPad, iconPad, iconPad, iconPad)
+        frame.addView(logoView, LayoutParams(sizePx, sizePx))
 
         return frame
     }
 
     private fun buildSubButton(
         context: Context,
-        emoji: String,
+        symbol: String,
         label: String,
         accentColorHex: String,
         sizePx: Int,
@@ -255,10 +244,9 @@ class SahaayOverlayView(
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            elevation = 14f * density
+            elevation = 12f * density
         }
 
-        // Circular Icon Container with Accent Border Ring
         val circle = FrameLayout(context).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
@@ -267,34 +255,35 @@ class SahaayOverlayView(
             }
         }
 
-        val emojiView = TextView(context).apply {
-            text = emoji
-            textSize = 19f
+        val symbolView = TextView(context).apply {
+            text = symbol
+            textSize = 11f
+            setTextColor(Color.parseColor(accentColorHex))
             gravity = Gravity.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
-        circle.addView(emojiView, ViewGroup.LayoutParams(sizePx, sizePx))
+        circle.addView(symbolView, ViewGroup.LayoutParams(sizePx, sizePx))
 
-        // Professional Dark Slate Pill Badge
         val labelContainer = FrameLayout(context).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = 12f * density
-                setColor(Color.parseColor("#1E293B"))
+                cornerRadius = 10f * density
+                setColor(Color.parseColor("#0F172A"))
                 setStroke((1f * density).toInt(), Color.parseColor(accentColorHex))
             }
         }
 
         val labelView = TextView(context).apply {
             text = label
-            textSize = 11f
+            textSize = 10f
             setTextColor(Color.parseColor("#F8FAFC"))
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setPadding(
-                (7 * density).toInt(),
-                (3 * density).toInt(),
-                (7 * density).toInt(),
-                (3 * density).toInt()
+                (6 * density).toInt(),
+                (2 * density).toInt(),
+                (6 * density).toInt(),
+                (2 * density).toInt()
             )
         }
         labelContainer.addView(labelView)
@@ -306,7 +295,7 @@ class SahaayOverlayView(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = (4 * density).toInt()
+                topMargin = (3 * density).toInt()
             }
         )
 
@@ -326,10 +315,6 @@ class SahaayOverlayView(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Micro Animations
-    // ------------------------------------------------------------------
-
     private fun startPulseRingAnimation() {
         val anim = ValueAnimator.ofFloat(1f, 1.35f).apply {
             duration = 1600
@@ -340,19 +325,19 @@ class SahaayOverlayView(
                 val scale = value.animatedValue as Float
                 pulseRing.scaleX = scale
                 pulseRing.scaleY = scale
-                pulseRing.alpha = (1.35f - scale) / 0.35f * 0.6f
+                pulseRing.alpha = (1.35f - scale) / 0.35f * 0.5f
             }
         }
         anim.start()
     }
 
     private fun animateButtonPress(view: View, isPressed: Boolean, onEnd: () -> Unit = {}) {
-        val targetScale = if (isPressed) 0.88f else 1.0f
+        val targetScale = if (isPressed) 0.90f else 1.0f
         val scaleX = ObjectAnimator.ofFloat(view, "scaleX", view.scaleX, targetScale)
         val scaleY = ObjectAnimator.ofFloat(view, "scaleY", view.scaleY, targetScale)
         AnimatorSet().apply {
             playTogether(scaleX, scaleY)
-            duration = 100
+            duration = 90
             interpolator = DecelerateInterpolator()
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
@@ -363,48 +348,33 @@ class SahaayOverlayView(
         }
     }
 
-    // ------------------------------------------------------------------
-    // Staggered Spring Expand / Collapse Animations
-    // ------------------------------------------------------------------
-
     private fun expandMenu() {
         isExpanded = true
         actionContainer.visibility = View.VISIBLE
 
-        val containerScaleX = ObjectAnimator.ofFloat(actionContainer, "scaleX", 0.2f, 1f)
-        val containerScaleY = ObjectAnimator.ofFloat(actionContainer, "scaleY", 0.2f, 1f)
+        val containerScaleX = ObjectAnimator.ofFloat(actionContainer, "scaleX", 0.3f, 1f)
+        val containerScaleY = ObjectAnimator.ofFloat(actionContainer, "scaleY", 0.3f, 1f)
         val containerAlpha = ObjectAnimator.ofFloat(actionContainer, "alpha", 0f, 1f)
 
         AnimatorSet().apply {
             playTogether(containerScaleX, containerScaleY, containerAlpha)
             duration = ANIM_DURATION
-            interpolator = OvershootInterpolator(1.4f)
+            interpolator = DecelerateInterpolator()
             start()
         }
 
-        // Stagger sub-button spring scales
         subViews.forEachIndexed { index, view ->
-            view.scaleX = 0.4f
-            view.scaleY = 0.4f
+            view.scaleX = 0.5f
+            view.scaleY = 0.5f
             view.alpha = 0f
             view.animate()
                 .scaleX(1f)
                 .scaleY(1f)
                 .alpha(1f)
-                .setStartDelay(index * 35L)
-                .setDuration(220L)
-                .setInterpolator(OvershootInterpolator(1.5f))
+                .setStartDelay(index * 25L)
+                .setDuration(180L)
+                .setInterpolator(DecelerateInterpolator())
                 .start()
-        }
-
-        // Pulse main button
-        ObjectAnimator.ofFloat(mainButton, "scaleX", 1f, 1.15f, 1f).apply {
-            duration = 240
-            start()
-        }
-        ObjectAnimator.ofFloat(mainButton, "scaleY", 1f, 1.15f, 1f).apply {
-            duration = 240
-            start()
         }
     }
 
@@ -412,13 +382,13 @@ class SahaayOverlayView(
         if (!isExpanded) return
         isExpanded = false
 
-        val scaleX = ObjectAnimator.ofFloat(actionContainer, "scaleX", 1f, 0.2f)
-        val scaleY = ObjectAnimator.ofFloat(actionContainer, "scaleY", 1f, 0.2f)
+        val scaleX = ObjectAnimator.ofFloat(actionContainer, "scaleX", 1f, 0.3f)
+        val scaleY = ObjectAnimator.ofFloat(actionContainer, "scaleY", 1f, 0.3f)
         val alpha = ObjectAnimator.ofFloat(actionContainer, "alpha", 1f, 0f)
 
         AnimatorSet().apply {
             playTogether(scaleX, scaleY, alpha)
-            duration = 180
+            duration = 160
             interpolator = DecelerateInterpolator()
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
@@ -428,10 +398,6 @@ class SahaayOverlayView(
             start()
         }
     }
-
-    // ------------------------------------------------------------------
-    // Edge Snapping
-    // ------------------------------------------------------------------
 
     private fun snapToEdge() {
         val displayMetrics = context.resources.displayMetrics
@@ -446,7 +412,7 @@ class SahaayOverlayView(
         }
 
         val anim = ObjectAnimator.ofInt(windowParams.x, targetX).apply {
-            duration = 220
+            duration = 200
             interpolator = DecelerateInterpolator()
             addUpdateListener {
                 windowParams.x = it.animatedValue as Int
