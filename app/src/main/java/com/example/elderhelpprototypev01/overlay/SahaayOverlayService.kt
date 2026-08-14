@@ -143,7 +143,7 @@ class SahaayOverlayService : Service() {
         val density = resources.displayMetrics.density
         val totalPx = (SahaayOverlayView.TOTAL_VIEW_SIZE_DP * density).toInt()
 
-        val buttonOffsetPx = (88 * density).toInt() // Center offset of 64dp button inside 240dp FrameLayout
+        val buttonOffsetPx = ((SahaayOverlayView.TOTAL_VIEW_SIZE_DP - 64) / 2 * density).toInt() // Center offset of 64dp button inside 260dp FrameLayout
         val params = WindowManager.LayoutParams(
             totalPx,
             totalPx,

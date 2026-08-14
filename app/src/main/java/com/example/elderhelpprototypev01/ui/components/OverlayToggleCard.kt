@@ -71,16 +71,16 @@ fun OverlayToggleCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(54.dp)
                         .clip(CircleShape)
                         .background(accentColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Mic,
-                        contentDescription = "Sahaay Assistant",
+                        contentDescription = "Sahaay Floating Assistant",
                         tint = accentColor,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 
@@ -88,18 +88,20 @@ fun OverlayToggleCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Sahaay Assistant",
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        text = "Sahaay Floating Assistant",
+                        style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = if (overlayEnabled) "Floating assistant is ON" else "Floating assistant is OFF",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = accentColor
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = accentColor,
+                            fontWeight = FontWeight.Bold
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -133,21 +135,21 @@ fun OverlayToggleCard(
             if (!hasPermission) {
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(SahaayCorners.small),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(SahaaySpacing.md)) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.lg)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.ShieldMoon,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(SahaaySpacing.sm))
                             Text(
-                                text = "Permission needed",
-                                style = MaterialTheme.typography.labelLarge.copy(
+                                text = "Permission required for floating button",
+                                style = MaterialTheme.typography.titleMedium.copy(
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -155,8 +157,8 @@ fun OverlayToggleCard(
                         }
                         Spacer(modifier = Modifier.height(SahaaySpacing.xs))
                         Text(
-                            text = "To show the floating Sahaay button above other apps, please allow \"Display over other apps\" in Settings.",
-                            style = MaterialTheme.typography.bodySmall.copy(
+                            text = "To show the floating Sahaay assistant on top of other apps, tap below and allow \"Display over other apps\".",
+                            style = MaterialTheme.typography.bodyMedium.copy(
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                         )
@@ -171,18 +173,20 @@ fun OverlayToggleCard(
                                 containerColor = MaterialTheme.colorScheme.secondary,
                                 contentColor = MaterialTheme.colorScheme.onSecondary
                             ),
-                            shape = RoundedCornerShape(SahaayCorners.small),
-                            modifier = Modifier.fillMaxWidth()
+                            shape = RoundedCornerShape(SahaayCorners.medium),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(SahaayTouchTarget.preferred)
                         ) {
                             Text(
-                                "Open Settings → Grant Permission",
-                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                "Grant Permission in Settings",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
                 }
             } else {
-                // Feature hint pills with strict truncation for pixel-perfect alignment
+                // Feature hint pills with clear, senior-readable typography
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm)
@@ -200,7 +204,7 @@ fun OverlayToggleCard(
                             modifier = Modifier.weight(1f)
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = SahaaySpacing.xs, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = SahaaySpacing.xs, vertical = SahaaySpacing.sm),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
@@ -208,13 +212,14 @@ fun OverlayToggleCard(
                                     imageVector = hint.icon,
                                     contentDescription = hint.label,
                                     tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = hint.label,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        color = MaterialTheme.colorScheme.onSurface
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        fontWeight = FontWeight.Bold
                                     ),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

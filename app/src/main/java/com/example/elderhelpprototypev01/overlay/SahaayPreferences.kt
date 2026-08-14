@@ -20,6 +20,6 @@ object SahaayPreferences {
 
     fun isOverlayEnabled(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_OVERLAY_ENABLED, false)
+            .getBoolean(KEY_OVERLAY_ENABLED, true)
     }
 }

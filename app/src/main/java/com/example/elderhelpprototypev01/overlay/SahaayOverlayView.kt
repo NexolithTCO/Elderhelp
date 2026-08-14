@@ -53,7 +53,7 @@ class SahaayOverlayView(
         private const val ANIM_DURATION = 240L
         private const val BUTTON_SIZE_DP = 64
         private const val SUB_SIZE_DP = 46
-        const val TOTAL_VIEW_SIZE_DP = 240
+        const val TOTAL_VIEW_SIZE_DP = 260
     }
 
     init {
@@ -98,24 +98,16 @@ class SahaayOverlayView(
         }
         addView(actionContainer, containerParams)
 
-        // ---- Dark Slate Menu Panel Backdrop ----
-        val backdropSizePx = (210 * density).toInt()
+        // ---- Transparent Backdrop Stub ----
         menuBackdrop = View(context).apply {
-            elevation = 10f * density
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#F51E293B")) // Professional Dark Slate
-                setStroke((1.5f * density).toInt(), Color.parseColor("#3094A3B8"))
-            }
+            visibility = View.GONE
         }
-        val backdropParams = LayoutParams(backdropSizePx, backdropSizePx).apply {
-            gravity = Gravity.CENTER
-        }
-        actionContainer.addView(menuBackdrop, backdropParams)
+        actionContainer.addView(menuBackdrop)
 
-        // ---- Sub-Action Buttons Layout ----
-        val center = totalPx / 2
-        val radius = (90 * density).toInt()
+        // ---- Sub-Action Buttons Radial Layout ----
+        val centerX = totalPx / 2
+        val centerY = totalPx / 2
+        val radius = (92 * density).toInt()
 
         data class SubAction(
             val label: String,
@@ -126,44 +118,48 @@ class SahaayOverlayView(
         )
 
         val subActions = listOf(
-            SubAction("Voice", "MIC", "#1B6B7D", Math.toRadians(0.0)) {
-                val intent = SahaayOverlayService.voiceHighlightIntent(context)
-                context.startService(intent)
-                collapseMenu()
-            },
-            SubAction("Read", "READ", "#2E7D32", Math.toRadians(270.0)) {
+            SubAction("Read", "👁", "#2E7D32", Math.toRadians(270.0)) {
                 val intent = SahaayOverlayService.analyzeScreenIntent(context, "Read this screen")
                 context.startService(intent)
                 collapseMenu()
             },
-            SubAction("Explain", "INFO", "#C4820E", Math.toRadians(180.0)) {
-                val intent = SahaayOverlayService.analyzeScreenIntent(context, "Explain this screen")
+            SubAction("Voice", "🎙", "#1B6B7D", Math.toRadians(320.0)) {
+                val intent = SahaayOverlayService.voiceHighlightIntent(context)
                 context.startService(intent)
                 collapseMenu()
             },
-            SubAction("Clear Box", "OFF", "#64748B", Math.toRadians(125.0)) {
-                HighlightManager.clearHighlight(context)
-                val intent = SahaayOverlayService.clearHighlightIntent(context)
-                context.startService(intent)
-                collapseMenu()
-            },
-            SubAction("SOS", "SOS", "#BA1A1A", Math.toRadians(225.0)) {
+            SubAction("SOS", "🆘", "#BA1A1A", Math.toRadians(220.0)) {
                 val intent = Intent(context, MainActivity::class.java).apply {
                     putExtra(MainActivity.EXTRA_TRIGGER_SOS, true)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                 }
                 context.startActivity(intent)
                 collapseMenu()
+            },
+            SubAction("Explain", "💡", "#C4820E", Math.toRadians(175.0)) {
+                val intent = SahaayOverlayService.analyzeScreenIntent(context, "Explain this screen")
+                context.startService(intent)
+                collapseMenu()
+            },
+            SubAction("Clear", "✕", "#64748B", Math.toRadians(5.0)) {
+                HighlightManager.clearHighlight(context)
+                val intent = SahaayOverlayService.clearHighlightIntent(context)
+                context.startService(intent)
+                collapseMenu()
             }
         )
 
         for (sub in subActions) {
             val subView = buildSubButton(context, sub.symbol, sub.label, sub.accentColor, subPx, sub.action)
-            val x = center + (radius * Math.cos(sub.angleRad)).toInt() - subPx / 2
-            val y = center + (radius * Math.sin(sub.angleRad)).toInt() - subPx / 2
-            val subParams = LayoutParams(subPx + 40, subPx + 36).apply {
-                leftMargin = x - 20
-                topMargin = y
+            val subW = (subPx + (28 * density)).toInt()
+            val subH = (subPx + (28 * density)).toInt()
+
+            val x = centerX + (radius * Math.cos(sub.angleRad)).toInt() - (subW / 2)
+            val y = centerY + (radius * Math.sin(sub.angleRad)).toInt() - (subH / 2)
+
+            val subParams = LayoutParams(subW, subH).apply {
+                leftMargin = x.coerceIn(0, totalPx - subW)
+                topMargin = y.coerceIn(0, totalPx - subH)
             }
             actionContainer.addView(subView, subParams)
             subViews.add(subView)
@@ -213,11 +209,11 @@ class SahaayOverlayView(
         val density = context.resources.displayMetrics.density
 
         val frame = FrameLayout(context).apply {
-            elevation = 16f * density
+            elevation = 14f * density
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
                 setColor(Color.parseColor("#1B6B7D")) // Sahaay Primary Teal
-                setStroke((2.5f * density).toInt(), Color.parseColor("#C4820E")) // Sahaay Accent Amber
+                setStroke((3f * density).toInt(), Color.parseColor("#C4820E")) // Sahaay Accent Amber
             }
         }
 
@@ -239,14 +235,16 @@ class SahaayOverlayView(
         accentColorHex: String,
         sizePx: Int,
         onClick: () -> Unit
-    ): LinearLayout {
+    ): View {
         val density = context.resources.displayMetrics.density
+
         val layout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             elevation = 12f * density
         }
 
+        // Circular Icon Badge
         val circle = FrameLayout(context).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
@@ -257,18 +255,19 @@ class SahaayOverlayView(
 
         val symbolView = TextView(context).apply {
             text = symbol
-            textSize = 11f
+            textSize = 20f
             setTextColor(Color.parseColor(accentColorHex))
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
         }
-        circle.addView(symbolView, ViewGroup.LayoutParams(sizePx, sizePx))
+        circle.addView(symbolView, FrameLayout.LayoutParams(sizePx, sizePx))
 
+        // Pill Label
         val labelContainer = FrameLayout(context).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = 10f * density
-                setColor(Color.parseColor("#0F172A"))
+                cornerRadius = 6f * density
+                setColor(Color.parseColor("#1E293B"))
                 setStroke((1f * density).toInt(), Color.parseColor(accentColorHex))
             }
         }
@@ -276,26 +275,26 @@ class SahaayOverlayView(
         val labelView = TextView(context).apply {
             text = label
             textSize = 10f
-            setTextColor(Color.parseColor("#F8FAFC"))
+            setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             setPadding(
-                (6 * density).toInt(),
+                (5 * density).toInt(),
                 (2 * density).toInt(),
-                (6 * density).toInt(),
+                (5 * density).toInt(),
                 (2 * density).toInt()
             )
         }
         labelContainer.addView(labelView)
 
-        layout.addView(circle, ViewGroup.LayoutParams(sizePx, sizePx))
+        layout.addView(circle, LinearLayout.LayoutParams(sizePx, sizePx))
         layout.addView(
             labelContainer,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             ).apply {
-                topMargin = (3 * density).toInt()
+                topMargin = (2 * density).toInt()
             }
         )
 
