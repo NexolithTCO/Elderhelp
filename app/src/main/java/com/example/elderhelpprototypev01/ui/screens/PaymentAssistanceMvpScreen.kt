@@ -1,6 +1,7 @@
 package com.example.elderhelpprototypev01.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,8 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.SahaayViewModel
-import com.example.elderhelpprototypev01.ui.theme.AppleCanvasBg
-import com.example.elderhelpprototypev01.ui.theme.Typography
+import com.example.elderhelpprototypev01.ui.theme.*
 import kotlinx.coroutines.delay
 
 enum class PaymentMvpStep {
@@ -73,8 +73,8 @@ fun PaymentAssistanceMvpScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(AppleCanvasBg)
-            .padding(24.dp),
+            .background(MaterialTheme.colorScheme.background)
+            .padding(SahaaySpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header
@@ -96,37 +96,82 @@ fun PaymentAssistanceMvpScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color(0xFF1C1C1E)
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(SahaaySpacing.sm))
 
             Text(
                 text = "Payment Assistance",
-                style = Typography.titleLarge,
-                color = Color(0xFF1C1C1E)
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(SahaaySpacing.lg))
 
         // Body
         when (currentStep) {
             PaymentMvpStep.FORM -> {
+                // Assistant Trigger Banner
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+                ) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.md)) {
+                        Text(
+                            text = "Try Assistant Triggers:",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                color = MaterialTheme.colorScheme.tertiary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Button(
+                                onClick = { viewModel.analyzeCurrentScreenAndHighlight("Where do I enter consumer number?") },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                                shape = RoundedCornerShape(SahaayCorners.small),
+                                contentPadding = PaddingValues(horizontal = SahaaySpacing.sm, vertical = SahaaySpacing.xs),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("“Where to type?”", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            }
+                            Button(
+                                onClick = { viewModel.analyzeCurrentScreenAndHighlight("Help me pay electricity bill") },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(SahaayCorners.small),
+                                contentPadding = PaddingValues(horizontal = SahaaySpacing.sm, vertical = SahaaySpacing.xs),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("“Guide bill pay”", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
+
                 Text(
                     text = "Select Bill Type",
-                    style = Typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Start
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
                 // Bill Type Selection
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm)
                 ) {
                     PaymentBillType.entries.forEach { billType ->
                         val isSelected = selectedBill == billType
@@ -134,66 +179,67 @@ fun PaymentAssistanceMvpScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .clickable { selectedBill = billType },
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isSelected) Color(0xFF007AFF) else Color.White,
+                            shape = RoundedCornerShape(SahaayCorners.medium),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                             border = if (isSelected) null else borderStrokeForUnselected()
                         ) {
                             Text(
                                 text = billType.displayName,
-                                style = Typography.bodyMedium.copy(
+                                style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                 ),
-                                color = if (isSelected) Color.White else Color(0xFF1C1C1E),
-                                modifier = Modifier.padding(vertical = 12.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = SahaaySpacing.md),
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
 
                 // Details Card
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White
+                    shape = RoundedCornerShape(SahaayCorners.large),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = SahaayElevation.low
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.lg)) {
                         Text(
                             text = selectedBill.provider,
-                            style = Typography.bodyLarge,
-                            color = Color(0xFF1C1C1E)
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Amount Due:", style = Typography.bodyMedium, color = Color(0xFF8E8E93))
-                            Text(selectedBill.amount, style = Typography.bodyLarge, color = Color(0xFF34C759))
+                            Text("Amount Due:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(selectedBill.amount, style = MaterialTheme.typography.bodyLarge, color = SahaaySuccess)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.xs))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Due Date:", style = Typography.bodyMedium, color = Color(0xFF8E8E93))
-                            Text(selectedBill.dueDate, style = Typography.bodyMedium, color = Color(0xFF1C1C1E))
+                            Text("Due Date:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(selectedBill.dueDate, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
 
                 OutlinedTextField(
                     value = consumerNumber,
                     onValueChange = { consumerNumber = it },
-                    label = { Text("Consumer Number", style = Typography.bodyMedium) },
+                    label = { Text("Consumer Number", style = MaterialTheme.typography.bodyMedium) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(SahaayCorners.medium)
                 )
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -203,65 +249,67 @@ fun PaymentAssistanceMvpScreen(
                     enabled = consumerNumber.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Review Payment", style = Typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    Text("Review Payment", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 }
             }
 
             PaymentMvpStep.CONFIRMATION -> {
                 Text(
                     text = "Confirm Payment Details",
-                    style = Typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Start
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White
+                    shape = RoundedCornerShape(SahaayCorners.large),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = SahaayElevation.low
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.lg)) {
                         ConfirmationRow("Bill Type", selectedBill.displayName)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         ConfirmationRow("Provider", selectedBill.provider)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         ConfirmationRow("Consumer No", maskConsumerNumber(consumerNumber))
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         ConfirmationRow("Due Date", selectedBill.dueDate)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         ConfirmationRow("Payment Method", "Saved UPI (Demo)")
                         
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = SahaaySpacing.md))
                         
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Total Amount", style = Typography.titleMedium, color = Color(0xFF1C1C1E))
-                            Text(selectedBill.amount, style = Typography.headlineMedium, color = Color(0xFF34C759))
+                            Text("Total Amount", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(selectedBill.amount, style = MaterialTheme.typography.headlineMedium, color = SahaaySuccess)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
 
                 // Safety Messaging
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFFFFF4E5)
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
                         text = "Safety Notice: ElderHelp will never ask for or store your OTP, UPI PIN, CVV, or password.",
-                        style = Typography.bodyMedium,
-                        color = Color(0xFFFF9500),
-                        modifier = Modifier.padding(16.dp)
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(SahaaySpacing.md)
                     )
                 }
 
@@ -271,23 +319,23 @@ fun PaymentAssistanceMvpScreen(
                     onClick = { currentStep = PaymentMvpStep.PROCESSING },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759))
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = SahaaySuccess)
                 ) {
-                    Text("Confirm & Pay", style = Typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    Text("Confirm & Pay", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(SahaaySpacing.sm))
 
                 OutlinedButton(
                     onClick = { currentStep = PaymentMvpStep.FORM },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium)
                 ) {
-                    Text("Go Back", style = Typography.bodyLarge, color = Color(0xFF007AFF))
+                    Text("Go Back", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -302,12 +350,12 @@ fun PaymentAssistanceMvpScreen(
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    CircularProgressIndicator(color = Color(0xFF007AFF))
-                    Spacer(modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                     Text(
                         text = "Processing simulated payment...",
-                        style = Typography.titleMedium,
-                        color = Color(0xFF1C1C1E)
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -321,42 +369,43 @@ fun PaymentAssistanceMvpScreen(
                     Icon(
                         imageVector = Icons.Filled.CheckCircle,
                         contentDescription = "Success",
-                        tint = Color(0xFF34C759),
+                        tint = SahaaySuccess,
                         modifier = Modifier.size(64.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(SahaaySpacing.md))
                     Text(
                         text = "Payment Successful",
-                        style = Typography.headlineMedium,
-                        color = Color(0xFF34C759)
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = SahaaySuccess
                     )
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                     
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color.White
+                        shape = RoundedCornerShape(SahaayCorners.large),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = SahaayElevation.low
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(SahaaySpacing.lg)) {
                             ConfirmationRow("Amount Paid", selectedBill.amount)
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             ConfirmationRow("Bill Type", selectedBill.displayName)
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             ConfirmationRow("Provider", selectedBill.provider)
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             ConfirmationRow("Consumer No", maskConsumerNumber(consumerNumber))
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             ConfirmationRow("Ref Number", "DEMO-REF-987654")
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                     
                     Text(
                         text = "Note: This was a simulated payment for the MVP demo. No real transaction occurred.",
-                        style = Typography.bodyMedium,
-                        color = Color(0xFF8E8E93),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -365,11 +414,11 @@ fun PaymentAssistanceMvpScreen(
                     onClick = { onBackToHome() },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007AFF))
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Back to Home", style = Typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    Text("Back to Home", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }
@@ -382,8 +431,8 @@ private fun ConfirmationRow(label: String, value: String) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, style = Typography.bodyMedium, color = Color(0xFF8E8E93))
-        Text(value, style = Typography.bodyLarge, color = Color(0xFF1C1C1E))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

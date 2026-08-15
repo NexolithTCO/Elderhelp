@@ -2,6 +2,7 @@ package com.example.elderhelpprototypev01.voice
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -59,9 +60,17 @@ class SpeechRecognizerManager(private val context: Context) {
         }
 
         // Release any existing recognizer
-        recognizer?.destroy()
+        try {
+            recognizer?.destroy()
+        } catch (e: Exception) {
+            // Ignore cleanup exception
+        }
 
-        recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+        recognizer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+        } else {
+            SpeechRecognizer.createSpeechRecognizer(context)
+        }.apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {
                     isListening = true

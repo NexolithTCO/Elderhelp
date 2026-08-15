@@ -163,12 +163,21 @@ fun SahaayHomeScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                         } else {
-                            PayBillsDemoScreen(
-                                onVoiceCommandRequest = { cmd ->
-                                    viewModel?.analyzeCurrentScreenAndHighlight(cmd)
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
+                            if (viewModel != null) {
+                                PaymentAssistanceMvpScreen(
+                                    viewModel = viewModel,
+                                    currentLanguage = currentLanguage,
+                                    onBackToHome = { selectedTab = 0 },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                PayBillsDemoScreen(
+                                    onVoiceCommandRequest = { cmd ->
+                                        viewModel?.analyzeCurrentScreenAndHighlight(cmd)
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
                         }
                     }
                 }
