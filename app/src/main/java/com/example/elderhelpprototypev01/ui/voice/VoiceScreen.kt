@@ -51,6 +51,18 @@ fun VoiceScreen(
         }
     }
 
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && result.data != null) {
+            val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            val text = matches?.firstOrNull()
+            if (!text.isNullOrBlank()) {
+                viewModel.processTranscript(text)
+            }
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -286,6 +298,19 @@ fun VoiceScreen(
                             OutlinedButton(
                                 onClick = {
                                     viewModel.resetVoiceState()
+                                    if (viewModel.hasMicPermission()) {
+                                        val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                            putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                            putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Speak to Sahaay...")
+                                        }
+                                        try {
+                                            systemSpeechLauncher.launch(intent)
+                                        } catch (e: Exception) {
+                                            viewModel.startListening()
+                                        }
+                                    } else {
+                                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                    }
                                 },
                                 shape = RoundedCornerShape(SahaayCorners.small)
                             ) {

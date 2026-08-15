@@ -220,8 +220,17 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
                 )
                 _conversation.value = _conversation.value + assistantMessage
 
-                // Auto-speak short responses if TTS is enabled
-                if (_ttsEnabled.value) {
+                val lower = text.lowercase()
+                val isScreenGuidance = lower.contains("click") || lower.contains("type") ||
+                        lower.contains("highlight") || lower.contains("find") ||
+                        lower.contains("where") || lower.contains("pay") ||
+                        lower.contains("doctor") || lower.contains("research") ||
+                        lower.contains("dial") || lower.contains("call") ||
+                        lower.contains("google") || lower.contains("bill")
+
+                if (isScreenGuidance) {
+                    analyzeCurrentScreenAndHighlight(text)
+                } else if (_ttsEnabled.value) {
                     val textToSpeak = buildSpeakableText(response)
                     ttsManager.speak(textToSpeak, force = false)
                 }

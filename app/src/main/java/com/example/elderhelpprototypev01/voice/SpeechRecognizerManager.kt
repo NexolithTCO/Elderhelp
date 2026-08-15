@@ -66,9 +66,13 @@ class SpeechRecognizerManager(private val context: Context) {
             // Ignore cleanup exception
         }
 
-        recognizer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-        } else {
+        recognizer = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(context)
+            }
+        } catch (e: Exception) {
             SpeechRecognizer.createSpeechRecognizer(context)
         }.apply {
             setRecognitionListener(object : RecognitionListener {
@@ -103,7 +107,7 @@ class SpeechRecognizerManager(private val context: Context) {
                     val bestResult = matches?.firstOrNull()
                     if (bestResult.isNullOrBlank()) {
                         _events.trySend(SpeechEvent.Error(
-                            "I couldn't hear you clearly. Please try again."
+                            "I couldn't hear you clearly. Please tap the mic and try speaking again."
                         ))
                     } else {
                         _events.trySend(SpeechEvent.FinalResult(bestResult))
@@ -114,25 +118,19 @@ class SpeechRecognizerManager(private val context: Context) {
                     isListening = false
                     val message = when (error) {
                         SpeechRecognizer.ERROR_AUDIO ->
-                            "There was a problem with the microphone. Please try again."
+                            "Microphone error. Please tap the mic and try again."
                         SpeechRecognizer.ERROR_CLIENT ->
-                            "Something went wrong. Please try again."
+                            "I couldn't hear you. Please tap the mic and try speaking."
                         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
                             "Microphone permission is needed to listen."
-                        SpeechRecognizer.ERROR_NETWORK ->
-                            "No internet connection. Voice recognition needs the internet."
-                        SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
-                            "The connection timed out. Please check your internet and try again."
-                        SpeechRecognizer.ERROR_NO_MATCH ->
-                            "I didn't catch that. Please speak a little more clearly and try again."
+                        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
+                            "Connection issue. Please check your internet connection."
+                        SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
+                            "I didn't catch that. Please tap the mic and speak clearly."
                         SpeechRecognizer.ERROR_RECOGNIZER_BUSY ->
-                            "I'm already listening. Please wait a moment and try again."
-                        SpeechRecognizer.ERROR_SERVER ->
-                            "There was a server error. Please try again in a moment."
-                        SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
-                            "I didn't hear anything. Please tap the microphone and try speaking."
+                            "Voice assistant busy. Please tap the mic to try again."
                         else ->
-                            "Something went wrong. Please try again."
+                            "Please tap the mic and try speaking again."
                     }
                     _events.trySend(SpeechEvent.Error(message))
                 }
@@ -141,14 +139,17 @@ class SpeechRecognizerManager(private val context: Context) {
             })
         }
 
-        val locale = languageToLocale(language)
+        val langTag = languageToLocale(language)
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.toString())
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, langTag)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, langTag)
+            putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, false)
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 5000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 2500L)
         }
 
         recognizer?.startListening(intent)
@@ -169,15 +170,15 @@ class SpeechRecognizerManager(private val context: Context) {
     }
 
     // ------------------------------------------------------------------
-    // Language → Locale mapping
+    // Language → BCP 47 Language Tag mapping
     // ------------------------------------------------------------------
 
-    private fun languageToLocale(language: String): Locale = when {
-        language.contains("Hindi") -> Locale("hi", "IN")
-        language.contains("Marathi") -> Locale("mr", "IN")
-        language.contains("Tamil") -> Locale("ta", "IN")
-        language.contains("Telugu") -> Locale("te", "IN")
-        language.contains("Bengali") -> Locale("bn", "IN")
-        else -> Locale("en", "IN")
+    private fun languageToLocale(language: String): String = when {
+        language.contains("Hindi") -> "hi-IN"
+        language.contains("Marathi") -> "mr-IN"
+        language.contains("Tamil") -> "ta-IN"
+        language.contains("Telugu") -> "te-IN"
+        language.contains("Bengali") -> "bn-IN"
+        else -> "en-IN"
     }
 }

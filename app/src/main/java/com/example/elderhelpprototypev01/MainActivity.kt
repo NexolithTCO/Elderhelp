@@ -28,6 +28,8 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Intent extra: open the voice tab directly (used by overlay Voice button) */
         const val EXTRA_OPEN_VOICE_TAB = "open_voice_tab"
+        /** Intent extra: start voice listening immediately in activity context */
+        const val EXTRA_START_VOICE_LISTENING = "start_voice_listening"
         /** Intent extra: trigger immediate screen analysis (used by overlay Screen/Explain/Help buttons) */
         const val EXTRA_ANALYZE_SCREEN = "analyze_screen"
         /** Intent extra: trigger emergency SOS button redirect directly from overlay */
@@ -93,8 +95,11 @@ class MainActivity : ComponentActivity() {
             openSosModalOnLaunch = true
         }
 
-        if (intent.getBooleanExtra(EXTRA_OPEN_VOICE_TAB, false)) {
+        if (intent.getBooleanExtra(EXTRA_OPEN_VOICE_TAB, false) || intent.getBooleanExtra(EXTRA_START_VOICE_LISTENING, false)) {
             initialTab = 1
+            if (intent.getBooleanExtra(EXTRA_START_VOICE_LISTENING, false)) {
+                sahaayViewModel.startListening()
+            }
         }
 
         val analyzeCmd = intent.getStringExtra(EXTRA_ANALYZE_SCREEN)
