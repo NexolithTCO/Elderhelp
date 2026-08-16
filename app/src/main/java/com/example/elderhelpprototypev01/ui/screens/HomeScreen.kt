@@ -1,13 +1,20 @@
 package com.example.elderhelpprototypev01.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +50,9 @@ fun SahaayHomeScreen(
     var selectedTab by rememberSaveable { mutableIntStateOf(initialTab) }
     var isSosModalOpen by remember { mutableStateOf(openSosModalOnLaunch) }
     var activeServiceDemo by rememberSaveable { mutableIntStateOf(0) } // 0: CareBook Doctor, 1: Pay Bills
+    var showProfile by rememberSaveable { mutableStateOf(false) }
+    var showHelp by rememberSaveable { mutableStateOf(false) }
+    var showForms by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(openSosModalOnLaunch) {
         if (openSosModalOnLaunch) {
@@ -76,6 +86,8 @@ fun SahaayHomeScreen(
                 currentLanguage = currentLanguage,
                 onTabSelected = { index ->
                     selectedTab = index
+                    showProfile = false
+                    showHelp = false
                 }
             )
         },
@@ -109,7 +121,7 @@ fun SahaayHomeScreen(
                     }
                 }
                 2 -> {
-                    // Services Tab (Doctor Booking + Pay Bills)
+                    // Services Tab (Doctor Booking, Pension Form, Pay Bills)
                     Column(modifier = Modifier.fillMaxSize()) {
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
@@ -120,14 +132,14 @@ fun SahaayHomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = SahaaySpacing.md, vertical = SahaaySpacing.sm),
-                                horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.sm)
+                                horizontalArrangement = Arrangement.spacedBy(SahaaySpacing.xs)
                             ) {
                                 FilterChip(
                                     selected = activeServiceDemo == 0,
                                     onClick = { activeServiceDemo = 0 },
                                     label = {
                                         Text(
-                                            "Doctor Booking",
+                                            "Doctor",
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     },
@@ -142,7 +154,22 @@ fun SahaayHomeScreen(
                                     onClick = { activeServiceDemo = 1 },
                                     label = {
                                         Text(
-                                            "Pay Utility Bills",
+                                            "Pension Form",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                FilterChip(
+                                    selected = activeServiceDemo == 2,
+                                    onClick = { activeServiceDemo = 2 },
+                                    label = {
+                                        Text(
+                                            "Pay Bills",
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                     },
@@ -155,28 +182,37 @@ fun SahaayHomeScreen(
                             }
                         }
 
-                        if (activeServiceDemo == 0) {
-                            CareBookDemoScreen(
-                                onVoiceCommandRequest = { cmd ->
-                                    viewModel?.analyzeCurrentScreenAndHighlight(cmd)
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            if (viewModel != null) {
-                                PaymentAssistanceMvpScreen(
-                                    viewModel = viewModel,
-                                    currentLanguage = currentLanguage,
-                                    onBackToHome = { selectedTab = 0 },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                PayBillsDemoScreen(
+                        when (activeServiceDemo) {
+                            0 -> {
+                                CareBookDemoScreen(
                                     onVoiceCommandRequest = { cmd ->
                                         viewModel?.analyzeCurrentScreenAndHighlight(cmd)
                                     },
                                     modifier = Modifier.fillMaxSize()
                                 )
+                            }
+                            1 -> {
+                                PensionFormScreen(
+                                    onBack = { selectedTab = 0 },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            else -> {
+                                if (viewModel != null) {
+                                    PaymentAssistanceMvpScreen(
+                                        viewModel = viewModel,
+                                        currentLanguage = currentLanguage,
+                                        onBackToHome = { selectedTab = 0 },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    PayBillsDemoScreen(
+                                        onVoiceCommandRequest = { cmd ->
+                                            viewModel?.analyzeCurrentScreenAndHighlight(cmd)
+                                        },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
                             }
                         }
                     }
@@ -192,20 +228,39 @@ fun SahaayHomeScreen(
                 }
                 else -> {
                     // Home Screen
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.background)
-                    ) {
-                        Column(
+                    if (showProfile) {
+                        BackHandler { showProfile = false }
+                        ProfileScreen(modifier = Modifier.fillMaxSize())
+                    } else if (showHelp) {
+                        BackHandler { showHelp = false }
+                        HelpScreen(
+                            onNavigateToPayments = { selectedTab = 2; activeServiceDemo = 2; showHelp = false },
+                            onNavigateToForms = { showForms = true; showHelp = false },
+                            onNavigateToDoctor = { selectedTab = 2; activeServiceDemo = 0; showHelp = false },
+                            onNavigateToProfile = { showProfile = true; showHelp = false },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else if (showForms) {
+                        BackHandler { showForms = false }
+                        PensionFormScreen(
+                            onBack = { showForms = false },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .verticalScroll(scrollState)
-                                .padding(horizontal = SahaaySpacing.lg)
-                                .padding(top = SahaaySpacing.lg, bottom = 96.dp),
-                            horizontalAlignment = Alignment.Start,
-                            verticalArrangement = Arrangement.Top
+                                .background(MaterialTheme.colorScheme.background)
                         ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(scrollState)
+                                    .padding(horizontal = SahaaySpacing.lg)
+                                    .padding(top = SahaaySpacing.lg, bottom = 96.dp),
+                                horizontalAlignment = Alignment.Start,
+                                verticalArrangement = Arrangement.Top
+                            ) {
                             // Top Header: Pixel-aligned Greeting & Brand Logo
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -242,9 +297,36 @@ fun SahaayHomeScreen(
                                     contentDescription = "Sahaay Logo",
                                     modifier = Modifier
                                         .padding(top = 4.dp)
-                                        .size(54.dp)
+                                        .size(48.dp)
                                         .clip(CircleShape)
                                 )
+
+                                Surface(
+                                    onClick = { showProfile = true },
+                                    shape = RoundedCornerShape(SahaayCorners.medium),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = SahaaySpacing.sm, vertical = SahaaySpacing.xs),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = "My Profile",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Profile",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.height(SahaaySpacing.xl))
@@ -270,7 +352,7 @@ fun SahaayHomeScreen(
 
                             Spacer(modifier = Modifier.height(SahaaySpacing.xl))
 
-                            // Quick Tasks Section
+                            // Quick Tasks Section (Doctor, Bills, Forms, Help)
                             QuickActionsSection(
                                 currentLanguage = currentLanguage,
                                 onActionClick = { action ->
@@ -282,6 +364,10 @@ fun SahaayHomeScreen(
                                     } else if (id == "doctor" || title.contains("doctor") || title.contains("appointment") || title.contains("डाक्टर")) {
                                         selectedTab = 2
                                         activeServiceDemo = 0
+                                    } else if (id == "forms" || title.contains("form") || title.contains("फॉर्म")) {
+                                        showForms = true
+                                    } else if (id == "help" || title.contains("help") || title.contains("मदद")) {
+                                        showHelp = true
                                     } else {
                                         viewModel?.analyzeCurrentScreenAndHighlight(action.title)
                                     }
@@ -310,4 +396,5 @@ fun SahaayHomeScreen(
             }
         }
     }
+}
 }

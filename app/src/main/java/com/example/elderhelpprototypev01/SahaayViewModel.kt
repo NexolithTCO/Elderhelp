@@ -188,6 +188,29 @@ class SahaayViewModel(application: Application) : AndroidViewModel(application) 
     // ------------------------------------------------------------------
 
     fun processTranscript(text: String) {
+        val clean = text.trim().lowercase()
+
+        // 1. System Vocal Anchors Fast-Path (Instant response without API delay)
+        when {
+            clean == "repeat" || clean.contains("repeat that") || clean.contains("say again") || clean.contains("phir se bolo") -> {
+                _voiceState.value = VoiceState.Done
+                speakCurrentResponse()
+                return
+            }
+            clean == "stop" || clean == "cancel" || clean.contains("ruk jao") || clean.contains("band karo") -> {
+                stopSpeaking()
+                stopListening()
+                _voiceState.value = VoiceState.Idle
+                return
+            }
+            clean.contains("what should i do next") || clean == "what next" || clean.contains("agla step") || clean.contains("kya karu") -> {
+                _voiceState.value = VoiceState.Processing
+                analyzeCurrentScreenAndHighlight("What should I do next?")
+                _voiceState.value = VoiceState.Done
+                return
+            }
+        }
+
         _voiceState.value = VoiceState.Processing
         _currentResponse.value = AssistantResponse.loading()
 

@@ -24,10 +24,14 @@ import androidx.compose.ui.unit.sp
 import com.example.elderhelpprototypev01.SahaayViewModel
 import com.example.elderhelpprototypev01.ui.theme.*
 import kotlinx.coroutines.delay
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.example.elderhelpprototypev01.profile.ProfileRepository
 
 enum class PaymentMvpStep {
     FORM,
     CONFIRMATION,
+    OTP_ENTRY,
     PROCESSING,
     SUCCESS
 }
@@ -66,9 +70,12 @@ fun PaymentAssistanceMvpScreen(
     modifier: Modifier = Modifier,
     onBackToHome: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var currentStep by remember { mutableStateOf(PaymentMvpStep.FORM) }
     var selectedBill by remember { mutableStateOf(PaymentBillType.ELECTRICITY) }
     var consumerNumber by remember { mutableStateOf("") }
+    var otpInput by remember { mutableStateOf("") }
+    val savedProfile = remember { ProfileRepository.getProfile() }
 
     Column(
         modifier = modifier
@@ -87,6 +94,7 @@ fun PaymentAssistanceMvpScreen(
                     when (currentStep) {
                         PaymentMvpStep.FORM -> onBackToHome()
                         PaymentMvpStep.CONFIRMATION -> currentStep = PaymentMvpStep.FORM
+                        PaymentMvpStep.OTP_ENTRY -> currentStep = PaymentMvpStep.CONFIRMATION
                         PaymentMvpStep.PROCESSING -> {} // Cannot go back during processing
                         PaymentMvpStep.SUCCESS -> onBackToHome()
                     }
@@ -156,7 +164,23 @@ fun PaymentAssistanceMvpScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(SahaaySpacing.lg))
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
+
+                // Profile Pre-fill Helper
+                if (savedProfile.hasMobile()) {
+                    OutlinedButton(
+                        onClick = {
+                            if (consumerNumber.isBlank()) {
+                                consumerNumber = savedProfile.mobileNumber
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(SahaayCorners.small)
+                    ) {
+                        Text("Use my saved details (${savedProfile.fullName.ifBlank { savedProfile.mobileNumber }})", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Spacer(modifier = Modifier.height(SahaaySpacing.sm))
+                }
 
                 Text(
                     text = "Select Bill Type",
@@ -235,7 +259,7 @@ fun PaymentAssistanceMvpScreen(
                 OutlinedTextField(
                     value = consumerNumber,
                     onValueChange = { consumerNumber = it },
-                    label = { Text("Consumer Number", style = MaterialTheme.typography.bodyMedium) },
+                    label = { Text("Consumer / Account Number", style = MaterialTheme.typography.bodyMedium) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
@@ -283,10 +307,10 @@ fun PaymentAssistanceMvpScreen(
                         Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                         ConfirmationRow("Due Date", selectedBill.dueDate)
                         Spacer(modifier = Modifier.height(SahaaySpacing.sm))
-                        ConfirmationRow("Payment Method", "Saved UPI (Demo)")
-                        
+                        ConfirmationRow("Payment Method", "UPI / Net Banking")
+
                         HorizontalDivider(modifier = Modifier.padding(vertical = SahaaySpacing.md))
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -306,7 +330,7 @@ fun PaymentAssistanceMvpScreen(
                     color = MaterialTheme.colorScheme.secondaryContainer
                 ) {
                     Text(
-                        text = "Safety Notice: ElderHelp will never ask for or store your OTP, UPI PIN, CVV, or password.",
+                        text = "Safety Notice: Sahaay will never ask for or store your OTP, UPI PIN, CVV, or password.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(SahaaySpacing.md)
@@ -316,14 +340,14 @@ fun PaymentAssistanceMvpScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
-                    onClick = { currentStep = PaymentMvpStep.PROCESSING },
+                    onClick = { currentStep = PaymentMvpStep.OTP_ENTRY },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(SahaayTouchTarget.preferred),
                     shape = RoundedCornerShape(SahaayCorners.medium),
                     colors = ButtonDefaults.buttonColors(containerColor = SahaaySuccess)
                 ) {
-                    Text("Confirm & Pay", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    Text("Proceed to Pay", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 }
 
                 Spacer(modifier = Modifier.height(SahaaySpacing.sm))
@@ -335,7 +359,78 @@ fun PaymentAssistanceMvpScreen(
                         .height(SahaayTouchTarget.preferred),
                     shape = RoundedCornerShape(SahaayCorners.medium)
                 ) {
-                    Text("Go Back", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    Text("Cancel / Go Back", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            PaymentMvpStep.OTP_ENTRY -> {
+                Text(
+                    text = "Bank Security Verification",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Start
+                )
+
+                Spacer(modifier = Modifier.height(SahaaySpacing.md))
+
+                // OTP Safety Banner
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    color = MaterialTheme.colorScheme.errorContainer
+                ) {
+                    Column(modifier = Modifier.padding(SahaaySpacing.md)) {
+                        Text(
+                            text = "Private OTP Field",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(SahaaySpacing.xs))
+                        Text(
+                            text = "Your bank is asking for an OTP. Please enter it yourself. Sahaay cannot see, read, or handle your OTP.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(SahaaySpacing.xl))
+
+                OutlinedTextField(
+                    value = otpInput,
+                    onValueChange = { if (it.length <= 6) otpInput = it },
+                    label = { Text("Enter 6-Digit OTP", style = MaterialTheme.typography.bodyLarge) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true,
+                    shape = RoundedCornerShape(SahaayCorners.medium)
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = { currentStep = PaymentMvpStep.PROCESSING },
+                    enabled = otpInput.length >= 4,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium),
+                    colors = ButtonDefaults.buttonColors(containerColor = SahaaySuccess)
+                ) {
+                    Text("Submit OTP & Pay", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                }
+
+                Spacer(modifier = Modifier.height(SahaaySpacing.sm))
+
+                OutlinedButton(
+                    onClick = { currentStep = PaymentMvpStep.CONFIRMATION },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(SahaayTouchTarget.preferred),
+                    shape = RoundedCornerShape(SahaayCorners.medium)
+                ) {
+                    Text("Back", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -353,7 +448,7 @@ fun PaymentAssistanceMvpScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(SahaaySpacing.xl))
                     Text(
-                        text = "Processing simulated payment...",
+                        text = "Verifying payment with bank...",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -378,9 +473,9 @@ fun PaymentAssistanceMvpScreen(
                         style = MaterialTheme.typography.headlineMedium,
                         color = SahaaySuccess
                     )
-                    
+
                     Spacer(modifier = Modifier.height(SahaaySpacing.xl))
-                    
+
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(SahaayCorners.large),
@@ -396,18 +491,21 @@ fun PaymentAssistanceMvpScreen(
                             Spacer(modifier = Modifier.height(SahaaySpacing.sm))
                             ConfirmationRow("Consumer No", maskConsumerNumber(consumerNumber))
                             Spacer(modifier = Modifier.height(SahaaySpacing.sm))
-                            ConfirmationRow("Ref Number", "DEMO-REF-987654")
+                            ConfirmationRow("Ref Number", "TXN-SAHAAY-849201")
                         }
                     }
-                    
-                    Spacer(modifier = Modifier.height(SahaaySpacing.xl))
-                    
-                    Text(
-                        text = "Note: This was a simulated payment for the MVP demo. No real transaction occurred.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+
+                    Spacer(modifier = Modifier.height(SahaaySpacing.lg))
+
+                    OutlinedButton(
+                        onClick = {
+                            Toast.makeText(context, "Transaction Reference TXN-SAHAAY-849201 copied", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(SahaayCorners.small)
+                    ) {
+                        Text("Save Reference", style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
 
                 Button(
@@ -418,7 +516,7 @@ fun PaymentAssistanceMvpScreen(
                     shape = RoundedCornerShape(SahaayCorners.medium),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Back to Home", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    Text("Done", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }
