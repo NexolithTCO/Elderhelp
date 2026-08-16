@@ -75,7 +75,7 @@ fun PaymentAssistanceMvpScreen(
     var selectedBill by remember { mutableStateOf(PaymentBillType.ELECTRICITY) }
     var consumerNumber by remember { mutableStateOf("") }
     var otpInput by remember { mutableStateOf("") }
-    val savedProfile = remember { ProfileRepository.getProfile() }
+    val savedProfile by ProfileRepository.profile.collectAsState()
 
     Column(
         modifier = modifier

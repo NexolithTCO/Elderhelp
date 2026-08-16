@@ -52,6 +52,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        // Initialize centralized ProfileRepository
+        com.example.elderhelpprototypev01.profile.ProfileRepository.init(applicationContext)
+
         // Handle intent extras from overlay
         handleIncomingIntents(intent)
 
